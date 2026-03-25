@@ -65,7 +65,7 @@ export default function LiquidacionDetalle() {
   // Summary
   const summary = useMemo(() => {
     if (!items) return { authors: 0, books: 0, units: 0, total: 0 };
-    const authorsSet = new Set(items.map(i => i.author));
+    
     return {
       authors: Number(totalAuthors),
       books: items.length,
