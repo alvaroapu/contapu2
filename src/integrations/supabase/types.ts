@@ -334,6 +334,35 @@ export type Database = {
       }
     }
     Functions: {
+      get_sales_page: {
+        Args: {
+          p_limit?: number
+          p_month?: number
+          p_offset?: number
+          p_search?: string
+          p_year: number
+        }
+        Returns: {
+          book_id: string
+          book_title: string
+          devoluciones: number
+          distributor_code: string
+          distributor_id: string
+          distributor_name: string
+          envios: number
+          inventario: number
+          total_books: number
+          ventas: number
+        }[]
+      }
+      match_book_by_normalized_title: {
+        Args: { p_title: string }
+        Returns: {
+          id: string
+          maidhisa_ref: string
+          title: string
+        }[]
+      }
       normalize_text: { Args: { input: string }; Returns: string }
     }
     Enums: {
