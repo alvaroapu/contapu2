@@ -8,6 +8,8 @@ import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
+import Ventas from "./pages/Ventas";
+import Importar from "./pages/Importar";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -30,8 +32,8 @@ const App = () => (
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/catalogo" element={<Catalogo />} />
-                      <Route path="/ventas" element={<Placeholder title="Ventas" />} />
-                      <Route path="/importar" element={<Placeholder title="Importar Reportes" />} />
+                      <Route path="/ventas" element={<Ventas />} />
+                      <Route path="/importar" element={<Importar />} />
                       <Route path="/liquidaciones" element={<Placeholder title="Liquidaciones" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
