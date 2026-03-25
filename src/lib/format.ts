@@ -1,4 +1,4 @@
-function parseDateValue(value: string | number | null | undefined): Date | null {
+function parseDateValue(value: string | number | Date | null | undefined): Date | null {
   if (value === null || value === undefined || value === '') return null;
 
   if (value instanceof Date) {
