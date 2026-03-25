@@ -10,7 +10,8 @@ import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
 import Ventas from "./pages/Ventas";
 import Importar from "./pages/Importar";
-import Placeholder from "./pages/Placeholder";
+import Liquidaciones from "./pages/Liquidaciones";
+import LiquidacionDetalle from "./pages/LiquidacionDetalle";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +35,8 @@ const App = () => (
                       <Route path="/catalogo" element={<Catalogo />} />
                       <Route path="/ventas" element={<Ventas />} />
                       <Route path="/importar" element={<Importar />} />
-                      <Route path="/liquidaciones" element={<Placeholder title="Liquidaciones" />} />
+                      <Route path="/liquidaciones" element={<Liquidaciones />} />
+                      <Route path="/liquidaciones/:id" element={<LiquidacionDetalle />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </AppLayout>
