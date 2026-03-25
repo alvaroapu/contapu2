@@ -1,5 +1,4 @@
 import * as XLSX from 'xlsx';
-import { formatCurrency } from '@/lib/format';
 import type { Liquidation, LiquidationItem } from '@/hooks/useLiquidations';
 
 export function exportLiquidationExcel(items: LiquidationItem[], liquidation: Liquidation) {

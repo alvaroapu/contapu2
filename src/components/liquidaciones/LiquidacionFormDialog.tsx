@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpCircle, Loader2 } from 'lucide-react';
 import { useCreateLiquidation } from '@/hooks/useLiquidations';
-import { YEARS } from '@/lib/constants';
+import { getYears } from '@/lib/constants';
+
+const YEARS = getYears();
 
 interface Props {
   open: boolean;
