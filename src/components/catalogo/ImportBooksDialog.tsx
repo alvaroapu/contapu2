@@ -52,6 +52,28 @@ function mapHeaders(raw: string[]): Record<number, string> {
   return map;
 }
 
+function parseSpreadsheetDate(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+
+  if (typeof value === 'number') {
+    const excelEpoch = Date.UTC(1899, 11, 30);
+    const date = new Date(excelEpoch + value * 24 * 60 * 60 * 1000);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const esMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (esMatch) {
+    const [, day, month, year] = esMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+}
+
 export function ImportBooksDialog({ open, onOpenChange }: Props) {
   const [parsed, setParsed] = useState<ParsedBook[]>([]);
   const [stats, setStats] = useState({ newCount: 0, existingCount: 0, noIsbn: 0 });
@@ -92,7 +114,7 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
         title: String(record.title ?? '').trim(),
         author: String(record.author ?? '').trim(),
         pvp: parseFloat(record.pvp) || 0,
-        publication_date: record.publication_date ? String(record.publication_date) : null,
+        publication_date: parseSpreadsheetDate(record.publication_date),
         maidhisa_ref: record.maidhisa_ref ? String(record.maidhisa_ref).trim() : null,
         ean: record.ean ? String(record.ean).trim() : null,
       });
