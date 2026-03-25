@@ -14,13 +14,327 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      books: {
+        Row: {
+          author: string
+          created_at: string | null
+          ean: string | null
+          id: string
+          isbn: string | null
+          maidhisa_ref: string | null
+          publication_date: string | null
+          pvp: number
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author: string
+          created_at?: string | null
+          ean?: string | null
+          id?: string
+          isbn?: string | null
+          maidhisa_ref?: string | null
+          publication_date?: string | null
+          pvp: number
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string
+          created_at?: string | null
+          ean?: string | null
+          id?: string
+          isbn?: string | null
+          maidhisa_ref?: string | null
+          publication_date?: string | null
+          pvp?: number
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      distributors: {
+        Row: {
+          code: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      import_batches: {
+        Row: {
+          distributor_id: string
+          error_log: Json | null
+          file_name: string
+          id: string
+          imported_at: string | null
+          imported_by: string | null
+          month: number
+          records_imported: number | null
+          records_skipped: number | null
+          status: string | null
+          year: number
+        }
+        Insert: {
+          distributor_id: string
+          error_log?: Json | null
+          file_name: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          month: number
+          records_imported?: number | null
+          records_skipped?: number | null
+          status?: string | null
+          year: number
+        }
+        Update: {
+          distributor_id?: string
+          error_log?: Json | null
+          file_name?: string
+          id?: string
+          imported_at?: string | null
+          imported_by?: string | null
+          month?: number
+          records_imported?: number | null
+          records_skipped?: number | null
+          status?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_batches_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liquidation_items: {
+        Row: {
+          book_id: string
+          distributor_amount: number | null
+          distributor_units: number | null
+          id: string
+          liquidation_id: string
+          online_amount: number | null
+          online_units: number | null
+          school_amount: number | null
+          school_units: number | null
+          total_amount: number | null
+        }
+        Insert: {
+          book_id: string
+          distributor_amount?: number | null
+          distributor_units?: number | null
+          id?: string
+          liquidation_id: string
+          online_amount?: number | null
+          online_units?: number | null
+          school_amount?: number | null
+          school_units?: number | null
+          total_amount?: number | null
+        }
+        Update: {
+          book_id?: string
+          distributor_amount?: number | null
+          distributor_units?: number | null
+          id?: string
+          liquidation_id?: string
+          online_amount?: number | null
+          online_units?: number | null
+          school_amount?: number | null
+          school_units?: number | null
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquidation_items_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liquidation_items_liquidation_id_fkey"
+            columns: ["liquidation_id"]
+            isOneToOne: false
+            referencedRelation: "liquidations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liquidations: {
+        Row: {
+          created_at: string | null
+          distributor_royalty_pct: number | null
+          finalized_at: string | null
+          id: string
+          online_royalty_pct: number | null
+          school_royalty_pct: number | null
+          status: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          distributor_royalty_pct?: number | null
+          finalized_at?: string | null
+          id?: string
+          online_royalty_pct?: number | null
+          school_royalty_pct?: number | null
+          status?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          distributor_royalty_pct?: number | null
+          finalized_at?: string | null
+          id?: string
+          online_royalty_pct?: number | null
+          school_royalty_pct?: number | null
+          status?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
+      sales_movements: {
+        Row: {
+          book_id: string
+          created_at: string | null
+          distributor_id: string
+          id: string
+          import_batch_id: string | null
+          month: number
+          notes: string | null
+          quantity: number
+          type: string
+          year: number
+        }
+        Insert: {
+          book_id: string
+          created_at?: string | null
+          distributor_id: string
+          id?: string
+          import_batch_id?: string | null
+          month: number
+          notes?: string | null
+          quantity: number
+          type: string
+          year: number
+        }
+        Update: {
+          book_id?: string
+          created_at?: string | null
+          distributor_id?: string
+          id?: string
+          import_batch_id?: string | null
+          month?: number
+          notes?: string | null
+          quantity?: number
+          type?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_movements_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_movements_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_movements_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      book_inventory_annual: {
+        Row: {
+          book_id: string | null
+          devoluciones: number | null
+          distributor_id: string | null
+          envios: number | null
+          inventario: number | null
+          ventas: number | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_movements_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_movements_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_inventory_summary: {
+        Row: {
+          book_id: string | null
+          devoluciones: number | null
+          distributor_id: string | null
+          envios: number | null
+          inventario: number | null
+          month: number | null
+          ventas: number | null
+          year: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_movements_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_movements_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      normalize_text: { Args: { input: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
