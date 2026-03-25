@@ -106,7 +106,18 @@ export function useBulkInsertBooks() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (books: Partial<Book>[]) => {
-      const { error } = await supabase.from('books').upsert(books as any, {
+      // Deduplicate by ISBN – keep last occurrence
+      const seen = new Map<string, Partial<Book>>();
+      const noIsbn: Partial<Book>[] = [];
+      for (const b of books) {
+        if (b.isbn) {
+          seen.set(b.isbn, b);
+        } else {
+          noIsbn.push(b);
+        }
+      }
+      const unique = [...seen.values(), ...noIsbn];
+      const { error } = await supabase.from('books').upsert(unique as any, {
         onConflict: 'isbn',
         ignoreDuplicates: false,
       });
