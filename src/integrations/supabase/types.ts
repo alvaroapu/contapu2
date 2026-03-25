@@ -334,6 +334,53 @@ export type Database = {
       }
     }
     Functions: {
+      get_dashboard_summary: {
+        Args: { p_year: number }
+        Returns: {
+          active_books: number
+          books_with_sales: number
+          estimated_royalties: number
+          total_units_sold: number
+        }[]
+      }
+      get_liquidation_items_page: {
+        Args: {
+          p_author_filter?: string
+          p_limit?: number
+          p_liquidation_id: string
+          p_offset?: number
+          p_only_with_sales?: boolean
+          p_search?: string
+        }
+        Returns: {
+          author: string
+          book_id: string
+          book_title: string
+          distributor_amount: number
+          distributor_units: number
+          item_id: string
+          online_amount: number
+          online_units: number
+          publication_date: string
+          pvp: number
+          school_amount: number
+          school_units: number
+          total_amount: number
+          total_authors: number
+        }[]
+      }
+      get_monthly_sales_summary: {
+        Args: { p_year: number }
+        Returns: {
+          distributor_returns: number
+          distributor_sales: number
+          month: number
+          online_returns: number
+          online_sales: number
+          school_returns: number
+          school_sales: number
+        }[]
+      }
       get_sales_page: {
         Args: {
           p_limit?: number
@@ -353,6 +400,27 @@ export type Database = {
           inventario: number
           total_books: number
           ventas: number
+        }[]
+      }
+      get_top_authors: {
+        Args: { p_limit?: number; p_year: number }
+        Returns: {
+          author: string
+          estimated_royalties: number
+          num_books: number
+          total_units: number
+        }[]
+      }
+      get_top_books: {
+        Args: { p_limit?: number; p_year: number }
+        Returns: {
+          author: string
+          book_id: string
+          main_channel: string
+          net_sales: number
+          title: string
+          total_returns: number
+          total_sales: number
         }[]
       }
       match_book_by_normalized_title: {

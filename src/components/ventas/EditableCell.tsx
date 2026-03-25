@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 
 interface Props {
   value: number;
-  editable: boolean;
+  editable?: boolean;
   onSave: (value: number) => void;
 }
 

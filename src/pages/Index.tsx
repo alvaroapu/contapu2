@@ -1,5 +1,5 @@
-import Placeholder from './Placeholder';
+import Dashboard from './Dashboard';
 
 export default function Index() {
-  return <Placeholder title="Dashboard" />;
+  return <Dashboard />;
 }
