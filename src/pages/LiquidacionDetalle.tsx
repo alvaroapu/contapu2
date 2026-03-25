@@ -227,7 +227,7 @@ export default function LiquidacionDetalle() {
             <SelectTrigger><SelectValue placeholder="Todos los autores" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Todos los autores</SelectItem>
-              {authors?.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+              {authors?.map((a: string) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
