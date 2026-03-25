@@ -20,7 +20,7 @@ import {
   calculateLiquidationItems,
   type LiquidationItem,
 } from '@/hooks/useLiquidations';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

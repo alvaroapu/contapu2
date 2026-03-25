@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { LiquidacionFormDialog } from '@/components/liquidaciones/LiquidacionFormDialog';
 import { useLiquidationsList, useDeleteLiquidation } from '@/hooks/useLiquidations';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 
 export default function Liquidaciones() {
   const { data: liquidations, isLoading } = useLiquidationsList();
