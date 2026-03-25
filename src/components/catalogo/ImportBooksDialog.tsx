@@ -1,0 +1,224 @@
+import { useState, useCallback } from 'react';
+import * as XLSX from 'xlsx';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useBulkInsertBooks } from '@/hooks/useBooks';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Upload } from 'lucide-react';
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}
+
+interface ParsedBook {
+  isbn: string | null;
+  title: string;
+  author: string;
+  pvp: number;
+  publication_date: string | null;
+  maidhisa_ref: string | null;
+  ean: string | null;
+}
+
+const HEADER_MAP: Record<string, string> = {
+  isbn: 'isbn',
+  ean: 'ean',
+  titulo: 'title', title: 'title',
+  autor: 'author', author: 'author',
+  pvp: 'pvp', precio: 'pvp', price: 'pvp',
+  fecha_publicacion: 'publication_date', fecha: 'publication_date', publication_date: 'publication_date',
+  maidhisa_ref: 'maidhisa_ref', ref_maidhisa: 'maidhisa_ref', referencia: 'maidhisa_ref',
+};
+
+function normalize(s: string) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_]/g, '_')
+    .trim();
+}
+
+function mapHeaders(raw: string[]): Record<number, string> {
+  const map: Record<number, string> = {};
+  raw.forEach((h, i) => {
+    const key = normalize(h);
+    if (HEADER_MAP[key]) map[i] = HEADER_MAP[key];
+  });
+  return map;
+}
+
+export function ImportBooksDialog({ open, onOpenChange }: Props) {
+  const [parsed, setParsed] = useState<ParsedBook[]>([]);
+  const [stats, setStats] = useState({ newCount: 0, existingCount: 0, noIsbn: 0 });
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const bulkInsert = useBulkInsertBooks();
+
+  const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+    if (rows.length < 2) {
+      toast.error('El archivo está vacío');
+      return;
+    }
+
+    const headerMap = mapHeaders(rows[0].map(String));
+    const books: ParsedBook[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0) continue;
+
+      const record: any = {};
+      Object.entries(headerMap).forEach(([colIdx, field]) => {
+        record[field] = row[Number(colIdx)] ?? null;
+      });
+
+      if (!record.title && !record.author) continue;
+
+      books.push({
+        isbn: record.isbn ? String(record.isbn).trim() : null,
+        title: String(record.title ?? '').trim(),
+        author: String(record.author ?? '').trim(),
+        pvp: parseFloat(record.pvp) || 0,
+        publication_date: record.publication_date ? String(record.publication_date) : null,
+        maidhisa_ref: record.maidhisa_ref ? String(record.maidhisa_ref).trim() : null,
+        ean: record.ean ? String(record.ean).trim() : null,
+      });
+    }
+
+    // Check existing ISBNs
+    const isbns = books.filter(b => b.isbn).map(b => b.isbn!);
+    let existingIsbns = new Set<string>();
+    if (isbns.length > 0) {
+      const { data } = await supabase.from('books').select('isbn').in('isbn', isbns);
+      existingIsbns = new Set((data ?? []).map((d: { isbn: string }) => d.isbn));
+    }
+
+    setParsed(books);
+    setStats({
+      newCount: books.filter(b => b.isbn && !existingIsbns.has(b.isbn)).length,
+      existingCount: books.filter(b => b.isbn && existingIsbns.has(b.isbn)).length,
+      noIsbn: books.filter(b => !b.isbn).length,
+    });
+  }, []);
+
+  const handleImport = async () => {
+    setImporting(true);
+    setProgress(0);
+
+    // Split into chunks of 50
+    const CHUNK = 50;
+    const booksWithIsbn = parsed.filter(b => b.isbn);
+    const booksWithoutIsbn = parsed.filter(b => !b.isbn);
+    const total = Math.ceil(booksWithIsbn.length / CHUNK) + Math.ceil(booksWithoutIsbn.length / CHUNK);
+    let done = 0;
+
+    try {
+      // Upsert books with ISBN
+      for (let i = 0; i < booksWithIsbn.length; i += CHUNK) {
+        await bulkInsert.mutateAsync(booksWithIsbn.slice(i, i + CHUNK));
+        done++;
+        setProgress(Math.round((done / total) * 100));
+      }
+
+      // Insert books without ISBN (always new)
+      for (let i = 0; i < booksWithoutIsbn.length; i += CHUNK) {
+        const chunk = booksWithoutIsbn.slice(i, i + CHUNK);
+        const { error } = await supabase.from('books').insert(chunk as any);
+        if (error) throw error;
+        done++;
+        setProgress(Math.round((done / total) * 100));
+      }
+
+      toast.success(`Importación completada: ${parsed.length} libros procesados`);
+      onOpenChange(false);
+      setParsed([]);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Error en la importación');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!importing) { onOpenChange(v); setParsed([]); } }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Importar catálogo</DialogTitle>
+        </DialogHeader>
+
+        {parsed.length === 0 ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Upload className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Sube un archivo CSV o XLSX</p>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFile}
+              className="text-sm"
+            />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex gap-4 text-sm">
+              <span className="rounded bg-muted px-2 py-1">{stats.newCount} nuevos</span>
+              <span className="rounded bg-muted px-2 py-1">{stats.existingCount} ya existen</span>
+              <span className="rounded bg-muted px-2 py-1">{stats.noIsbn} sin ISBN</span>
+            </div>
+
+            <div className="max-h-60 overflow-auto rounded border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Autor</TableHead>
+                    <TableHead>ISBN</TableHead>
+                    <TableHead>PVP</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parsed.slice(0, 10).map((b, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{b.title}</TableCell>
+                      <TableCell>{b.author}</TableCell>
+                      <TableCell>{b.isbn ?? '—'}</TableCell>
+                      <TableCell>{b.pvp}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {parsed.length > 10 && (
+                <p className="p-2 text-center text-xs text-muted-foreground">
+                  …y {parsed.length - 10} más
+                </p>
+              )}
+            </div>
+
+            {importing && <Progress value={progress} className="h-2" />}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setParsed([]); }} disabled={importing}>
+                Cancelar
+              </Button>
+              <Button onClick={handleImport} disabled={importing}>
+                {importing ? `Importando… ${progress}%` : 'Confirmar importación'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
