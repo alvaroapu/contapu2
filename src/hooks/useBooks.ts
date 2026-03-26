@@ -48,6 +48,10 @@ export function useBooks(filters: BookFilters) {
         query = query.eq('author', filters.author);
       }
 
+      if (filters.missingIsbn) {
+        query = query.is('isbn', null);
+      }
+
       const from = filters.page * filters.pageSize;
       const to = from + filters.pageSize - 1;
 
