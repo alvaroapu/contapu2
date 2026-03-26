@@ -209,7 +209,20 @@ export default function Catalogo() {
                     key={book.id}
                     className="cursor-pointer"
                     onClick={() => openEdit(book)}
+                    data-state={selectedIds.has(book.id) ? 'selected' : undefined}
                   >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(book.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedIds(prev => {
+                            const next = new Set(prev);
+                            checked ? next.add(book.id) : next.delete(book.id);
+                            return next;
+                          });
+                        }}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium max-w-[250px] truncate">{book.title}</TableCell>
                     <TableCell>{book.author}</TableCell>
                     <TableCell className="text-xs">{book.isbn ?? '—'}</TableCell>
