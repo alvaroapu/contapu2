@@ -324,7 +324,7 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
           <DialogTitle>Importar catálogo</DialogTitle>
         </DialogHeader>
 
-        {rows.length === 0 ? (
+        {rows.length === 0 && lastImportedIds.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <Upload className="h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
