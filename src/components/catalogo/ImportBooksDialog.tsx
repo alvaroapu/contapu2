@@ -106,11 +106,8 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
       }
 
       const hasTitle = Object.values(headerMap).includes('title');
-      const hasAuthor = Object.values(headerMap).includes('author');
-      if (!hasTitle || !hasAuthor) {
-        toast.error(
-          `Faltan columnas obligatorias: ${!hasTitle ? 'Título' : ''}${!hasTitle && !hasAuthor ? ' y ' : ''}${!hasAuthor ? 'Autor' : ''}`
-        );
+      if (!hasTitle) {
+        toast.error('Falta la columna obligatoria: Título');
         return;
       }
 
@@ -125,12 +122,12 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
           record[field] = row[Number(colIdx)] ?? null;
         });
 
-        if (!record.title && !record.author) continue;
+        if (!record.title) continue;
 
         books.push({
           isbn: record.isbn ? String(record.isbn).trim() : null,
           title: String(record.title ?? '').trim(),
-          author: String(record.author ?? '').trim(),
+          author: record.author ? String(record.author).trim() : '',
           pvp: parseFloat(record.pvp) || 0,
           publication_date: parseSpreadsheetDate(record.publication_date),
           maidhisa_ref: record.maidhisa_ref ? String(record.maidhisa_ref).trim() : null,
