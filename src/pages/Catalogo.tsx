@@ -178,7 +178,7 @@ export default function Catalogo() {
                 ))
               : books.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                       No se encontraron libros
                     </TableCell>
                   </TableRow>
