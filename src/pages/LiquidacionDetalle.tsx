@@ -321,7 +321,7 @@ export default function LiquidacionDetalle() {
                           {idx === 0 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleDownloadAuthorPDF(author)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleDownloadAuthorDOCX(author)}>
                                   <Download className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
