@@ -318,7 +318,7 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!importing) { onOpenChange(v); setRows([]); } }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!importing && !reverting) { onOpenChange(v); setRows([]); setLastImportedIds([]); } }}>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Importar catálogo</DialogTitle>
