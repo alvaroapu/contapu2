@@ -11,7 +11,8 @@ import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
 import { Plus, Upload, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDeleteAllBooks, useDeleteBook, useExportCatalog } from '@/hooks/useBooks';
+import { useDeleteAllBooks, useDeleteBook, useDeleteBooks, useExportCatalog } from '@/hooks/useBooks';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
