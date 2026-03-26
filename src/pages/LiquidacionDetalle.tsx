@@ -112,7 +112,7 @@ export default function LiquidacionDetalle() {
     exportLiquidationExcel(allItems, liq);
   };
 
-  const handleGenerateAllPDFs = async () => {
+  const handleGenerateAllDOCX = async () => {
     if (!liq) return;
     setGenAllLoading(true);
     try {
@@ -120,18 +120,17 @@ export default function LiquidacionDetalle() {
       const authorsSet = [...new Set(allItems.map(i => i.author))].sort();
       const zip = new JSZip();
       for (const author of authorsSet) {
-        const doc = generateAuthorPDF(author, allItems, liq);
-        const blob = doc.output('arraybuffer');
-        zip.file(`Liquidacion_${liq.year}_${author.replace(/\s+/g, '_')}.pdf`, blob);
+        const blob = await generateAuthorDOCX(author, allItems, liq);
+        zip.file(`Liquidacion_${liq.year}_${author.replace(/\s+/g, '_')}.docx`, blob);
       }
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Liquidaciones_${liq.year}_PDFs.zip`;
+      a.download = `Liquidaciones_${liq.year}_DOCX.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${authorsSet.length} PDFs generados`);
+      toast.success(`${authorsSet.length} documentos generados`);
     } catch (e: any) {
       toast.error(e.message);
     }
