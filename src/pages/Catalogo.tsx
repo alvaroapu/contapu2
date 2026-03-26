@@ -164,6 +164,7 @@ export default function Catalogo() {
               <SortHeader col="publication_date" label="Fecha pub." />
               <TableHead>Estado</TableHead>
               <TableHead>Ref. Maidhisa</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
