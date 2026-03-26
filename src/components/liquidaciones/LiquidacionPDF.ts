@@ -6,27 +6,91 @@ function formatEur(val: number): string {
 }
 
 const PAGE_W = 210;
-const MARGIN_L = 20;
-const MARGIN_R = 20;
+const PAGE_H = 297;
+const MARGIN_L = 25;
+const MARGIN_R = 25;
+const MARGIN_T = 20;
 const CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R;
 
-function addWrappedText(doc: jsPDF, text: string, x: number, y: number, maxW: number, lineH: number, opts?: { bold?: boolean; italic?: boolean; underline?: boolean; fontSize?: number }): number {
+// Cache for loaded images
+let headerLogoData: string | null = null;
+let stampLogoData: string | null = null;
+
+async function loadImageAsDataUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function ensureLogosLoaded(): Promise<void> {
+  if (!headerLogoData) {
+    headerLogoData = await loadImageAsDataUrl('/img/logo_header.png');
+  }
+  if (!stampLogoData) {
+    stampLogoData = await loadImageAsDataUrl('/img/logo_stamp.png');
+  }
+}
+
+/**
+ * Add text with word wrapping and optional justify alignment.
+ * Returns the Y position after the text.
+ */
+function addText(
+  doc: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  maxW: number,
+  lineH: number,
+  opts?: {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    fontSize?: number;
+    align?: 'left' | 'justify';
+  }
+): number {
   const prevSize = doc.getFontSize();
   if (opts?.fontSize) doc.setFontSize(opts.fontSize);
-  
+
   let style = 'normal';
   if (opts?.bold && opts?.italic) style = 'bolditalic';
   else if (opts?.bold) style = 'bold';
   else if (opts?.italic) style = 'italic';
   doc.setFont('helvetica', style);
 
-  const lines = doc.splitTextToSize(text, maxW);
-  for (const line of lines) {
-    if (y > 275) {
+  const lines: string[] = doc.splitTextToSize(text, maxW);
+  const align = opts?.align ?? 'left';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (y > PAGE_H - 25) {
       doc.addPage();
-      y = 20;
+      y = MARGIN_T;
     }
-    doc.text(line, x, y);
+
+    if (align === 'justify' && i < lines.length - 1 && line.trim().length > 0) {
+      // Justify: distribute extra space between words
+      const words = line.split(/\s+/);
+      if (words.length > 1) {
+        const totalTextWidth = words.reduce((sum, w) => sum + doc.getTextWidth(w), 0);
+        const extraSpace = (maxW - totalTextWidth) / (words.length - 1);
+        let cx = x;
+        for (const word of words) {
+          doc.text(word, cx, y);
+          cx += doc.getTextWidth(word) + extraSpace;
+        }
+      } else {
+        doc.text(line, x, y);
+      }
+    } else {
+      doc.text(line, x, y);
+    }
+
     if (opts?.underline) {
       const tw = doc.getTextWidth(line);
       doc.setDrawColor(0);
@@ -35,205 +99,148 @@ function addWrappedText(doc: jsPDF, text: string, x: number, y: number, maxW: nu
     }
     y += lineH;
   }
-  
+
   doc.setFont('helvetica', 'normal');
   if (opts?.fontSize) doc.setFontSize(prevSize);
   return y;
 }
 
-function buildAuthorPDF(author: string, authorItems: LiquidationItem[], liq: Liquidation): jsPDF {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+/**
+ * Measure text height without rendering
+ */
+function measureTextHeight(
+  doc: jsPDF,
+  text: string,
+  maxW: number,
+  lineH: number,
+  opts?: { bold?: boolean; fontSize?: number }
+): number {
+  const prevSize = doc.getFontSize();
+  if (opts?.fontSize) doc.setFontSize(opts.fontSize);
+  if (opts?.bold) doc.setFont('helvetica', 'bold');
+  else doc.setFont('helvetica', 'normal');
+
+  const lines = doc.splitTextToSize(text, maxW);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  
-  let y = 25;
-  const lineH = 5.5;
-
-  // "Dirigido a [author]."
-  y = addWrappedText(doc, `Dirigido a ${author}.`, MARGIN_L, y, CONTENT_W, lineH);
-  y += 3;
-
-  // "Buenas tardes:"
-  y = addWrappedText(doc, 'Buenas tardes:', MARGIN_L, y, CONTENT_W, lineH);
-  y += 2;
-
-  // Intro paragraph
-  const intro = `En relación al informe de ventas del año ${liq.year}, indicar que ya lo tenemos preparado y se lo enviaremos a continuación. Es importante tener en cuenta la operativa de ventas en librerías a través de distribuidoras, por lo que pasamos a detallarla:`;
-  y = addWrappedText(doc, intro, MARGIN_L, y, CONTENT_W, lineH);
-  y += 2;
-
-  // Numbered points
-  y = addWrappedText(doc, '1. Las distribuidoras cuentan con un depósito de ejemplares que desde la editorial les hacemos llegar.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 1;
-  y = addWrappedText(doc, '2. Las distribuidoras mandan ejemplares en depósito a librerías y a grandes superficies; el depósito dura de 3 a 6 meses, por lo que hasta transcurridos estos plazos, las distribuidoras desconocen las ventas de los libros.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 3;
-
-  // Examples
-  y = addWrappedText(doc, 'Ejemplos:', MARGIN_L, y, CONTENT_W, lineH, { bold: true });
-  y += 1;
-  y = addWrappedText(doc, '1. Las distribuidoras no tienen datos de las ventas de todos los libros dejados en depósitos con fecha posterior al 30 de septiembre (en el caso de haberlos dejado en depósito durante 3 meses). En este caso, la editorial solo tiene datos de facturación de los primeros 9 meses del año.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 1;
-  y = addWrappedText(doc, '2. Las distribuidoras no tienen datos de las ventas de todos los libros dejados en depósito con fecha posterior al 30 de junio (en el caso de haberlos dejado en depósito durante 6 meses). En este caso, la editorial solo tiene datos de facturación de los primeros 6 meses del año.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 5;
-
-  // --- Sales info box ---
-  const boxX = MARGIN_L;
-  const boxW = CONTENT_W;
-  const boxStartY = y;
-  const boxPadding = 4;
-  let boxY = y + boxPadding;
-
-  // We'll render content first to measure, then draw the box
-  // Save state, render to measure
-  const contentStartY = boxY;
-
-  // "Informe de ventas YEAR:"
-  boxY = addWrappedText(doc, `Informe de ventas ${liq.year}:`, boxX + boxPadding, boxY, boxW - boxPadding * 2, lineH, { bold: true, underline: true });
-  boxY += 2;
-
-  // Author name
-  boxY = addWrappedText(doc, `- Nombre autor/a: ${author}`, boxX + boxPadding, boxY, boxW - boxPadding * 2, lineH);
-  boxY += 3;
-
-  // Each book
-  for (const item of authorItems) {
-    // Title
-    boxY = addWrappedText(doc, `- Título: ${item.book_title}`, boxX + boxPadding, boxY, boxW - boxPadding * 2, lineH);
-    boxY += 2;
-
-    // Distributor sales
-    const indentX = boxX + boxPadding + 8;
-    const indentW = boxW - boxPadding * 2 - 8;
-    boxY = addWrappedText(doc, `- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${item.distributor_units} ejemplares: ${formatEur(item.distributor_amount)}`, indentX, boxY, indentW, lineH);
-
-    // Online sales
-    boxY = addWrappedText(doc, `- Venta web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${item.online_units} ejemplares: ${formatEur(item.online_amount)}`, indentX, boxY, indentW, lineH);
-
-    // School sales
-    boxY = addWrappedText(doc, `- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}`, indentX, boxY, indentW, lineH);
-    boxY += 3;
-  }
-
-  // Total
-  const total = authorItems.reduce((s, i) => s + i.total_amount, 0);
-  boxY = addWrappedText(doc, `TOTAL: `, boxX + boxPadding, boxY, boxW - boxPadding * 2, lineH, { bold: true });
-  // Go back up to add the amount in italic next to TOTAL
-  const totalLabelW = doc.getTextWidth('TOTAL: ');
-  doc.setFont('helvetica', 'italic');
-  doc.text(formatEur(total), boxX + boxPadding + totalLabelW, boxY - lineH);
-  doc.setFont('helvetica', 'normal');
-  boxY += 2;
-
-  // Draw the box background and border
-  const boxH = boxY - boxStartY;
-  // Light blue background
-  doc.setFillColor(198, 217, 241); // #C6D9F1
-  doc.setDrawColor(150, 180, 220);
-  doc.setLineWidth(0.5);
-  // Draw behind text - we need to redraw. Instead, let's use a different approach.
-  // jsPDF draws in order, so we need to draw the rect first. 
-  // We'll rebuild with a two-pass approach.
-
-  // Actually, let's just rebuild. The simplest approach: calculate height first, draw box, then text.
-  // Since we already rendered the text on the pages, let's just overlay the rectangle behind.
-  // Unfortunately jsPDF doesn't support z-ordering. Let's rebuild properly.
-
-  return rebuildWithBox(author, authorItems, liq);
+  if (opts?.fontSize) doc.setFontSize(prevSize);
+  return lines.length * lineH;
 }
 
-function rebuildWithBox(author: string, authorItems: LiquidationItem[], liq: Liquidation): jsPDF {
-  // First pass: measure the box content height
-  const measureDoc = new jsPDF({ unit: 'mm', format: 'a4' });
-  measureDoc.setFont('helvetica', 'normal');
-  measureDoc.setFontSize(11);
-  
-  const lineH = 5.5;
-  const boxPadding = 4;
-  const boxInnerW = CONTENT_W - boxPadding * 2;
-  let h = boxPadding;
-
-  // Measure all box content
-  function measureText(text: string, maxW: number, opts?: { bold?: boolean }): number {
-    if (opts?.bold) measureDoc.setFont('helvetica', 'bold');
-    else measureDoc.setFont('helvetica', 'normal');
-    const lines = measureDoc.splitTextToSize(text, maxW);
-    measureDoc.setFont('helvetica', 'normal');
-    return lines.length * lineH;
-  }
-
-  h += measureText(`Informe de ventas ${liq.year}:`, boxInnerW, { bold: true }) + 2;
-  h += measureText(`- Nombre autor/a: ${author}`, boxInnerW) + 3;
-
-  for (const item of authorItems) {
-    h += measureText(`- Título: ${item.book_title}`, boxInnerW) + 2;
-    const indentW = boxInnerW - 8;
-    h += measureText(`- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${item.distributor_units} ejemplares: ${formatEur(item.distributor_amount)}`, indentW);
-    h += measureText(`- Venta web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${item.online_units} ejemplares: ${formatEur(item.online_amount)}`, indentW);
-    h += measureText(`- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}`, indentW);
-    h += 3;
-  }
-
-  h += measureText('TOTAL: ' + formatEur(authorItems.reduce((s, i) => s + i.total_amount, 0)), boxInnerW, { bold: true }) + 2;
-  h += boxPadding;
-
-  // Second pass: actual render
+function buildAuthorPDF(
+  author: string,
+  authorItems: LiquidationItem[],
+  liq: Liquidation
+): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
-  
-  let y = 25;
 
-  // Intro text
-  y = addWrappedText(doc, `Dirigido a ${author}.`, MARGIN_L, y, CONTENT_W, lineH);
-  y += 3;
-  y = addWrappedText(doc, 'Buenas tardes:', MARGIN_L, y, CONTENT_W, lineH);
-  y += 2;
-  y = addWrappedText(doc, `En relación al informe de ventas del año ${liq.year}, indicar que ya lo tenemos preparado y se lo enviaremos a continuación. Es importante tener en cuenta la operativa de ventas en librerías a través de distribuidoras, por lo que pasamos a detallarla:`, MARGIN_L, y, CONTENT_W, lineH);
-  y += 2;
-  y = addWrappedText(doc, '1. Las distribuidoras cuentan con un depósito de ejemplares que desde la editorial les hacemos llegar.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 1;
-  y = addWrappedText(doc, '2. Las distribuidoras mandan ejemplares en depósito a librerías y a grandes superficies; el depósito dura de 3 a 6 meses, por lo que hasta transcurridos estos plazos, las distribuidoras desconocen las ventas de los libros.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 3;
-  y = addWrappedText(doc, 'Ejemplos:', MARGIN_L, y, CONTENT_W, lineH, { bold: true });
-  y += 1;
-  y = addWrappedText(doc, '1. Las distribuidoras no tienen datos de las ventas de todos los libros dejados en depósitos con fecha posterior al 30 de septiembre (en el caso de haberlos dejado en depósito durante 3 meses). En este caso, la editorial solo tiene datos de facturación de los primeros 9 meses del año.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 1;
-  y = addWrappedText(doc, '2. Las distribuidoras no tienen datos de las ventas de todos los libros dejados en depósito con fecha posterior al 30 de junio (en el caso de haberlos dejado en depósito durante 6 meses). En este caso, la editorial solo tiene datos de facturación de los primeros 6 meses del año.', MARGIN_L, y, CONTENT_W, lineH);
-  y += 5;
+  const lineH = 5.5;
+  const boxPadding = 5;
+  const boxInnerW = CONTENT_W - boxPadding * 2;
 
-  // Check if box fits on current page, if not, new page
-  if (y + h > 280) {
-    doc.addPage();
-    y = 20;
+  // ========== PAGE 1 ==========
+
+  // Header logo (top right)
+  if (headerLogoData) {
+    // Original: 299x212px, display ~30x21mm top right
+    const logoW = 30;
+    const logoH = 21;
+    doc.addImage(headerLogoData, 'PNG', PAGE_W - MARGIN_R - logoW, MARGIN_T - 5, logoW, logoH);
   }
 
-  // Draw box background
-  const boxStartY = y;
-  doc.setFillColor(198, 217, 241);
-  doc.setDrawColor(150, 180, 220);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(MARGIN_L, boxStartY, CONTENT_W, h, 1, 1, 'FD');
+  let y = MARGIN_T + 20;
 
-  // Box content
-  let bY = boxStartY + boxPadding;
-  bY = addWrappedText(doc, `Informe de ventas ${liq.year}:`, MARGIN_L + boxPadding, bY, boxInnerW, lineH, { bold: true, underline: true });
-  bY += 2;
-  bY = addWrappedText(doc, `- Nombre autor/a: ${author}`, MARGIN_L + boxPadding, bY, boxInnerW, lineH);
-  bY += 3;
+  // "Dirigido a [author]."
+  y = addText(doc, `Dirigido a ${author}.`, MARGIN_L, y, CONTENT_W, lineH);
+  y += 4;
+
+  // "Buenas tardes:"
+  y = addText(doc, 'Buenas tardes:', MARGIN_L, y, CONTENT_W, lineH);
+  y += 4;
+
+  // Intro paragraph (justified like the DOCX)
+  const intro = `En relación al informe de ventas del año ${liq.year}, indicar que ya lo tenemos preparado y se lo enviaremos a continuación. Es importante tener en cuenta la operativa de ventas en librerías a través de distribuidoras, por lo que pasamos a detallarla:`;
+  y = addText(doc, intro, MARGIN_L, y, CONTENT_W, lineH, { align: 'justify' });
+  y += 4;
+
+  // Numbered points with indent (justified)
+  const indent = 12;
+  y = addText(doc, '1. Las distribuidoras cuentan con un depósito de ejemplares que desde la editorial les hacemos llegar.', MARGIN_L + indent, y, CONTENT_W - indent, lineH, { align: 'justify' });
+  y += 3;
+  y = addText(doc, '2. Las distribuidoras mandan ejemplares en depósito a librerías y a grandes superficies; el depósito dura de 3 a 6 meses, por lo que hasta transcurridos estos plazos, las distribuidoras desconocen las ventas de los libros.', MARGIN_L + indent, y, CONTENT_W - indent, lineH, { align: 'justify' });
+  y += 8;
+
+  // "Ejemplos:" bold
+  y = addText(doc, 'Ejemplos:', MARGIN_L, y, CONTENT_W, lineH, { bold: true });
+  y += 4;
+
+  y = addText(doc, '1. Las distribuidoras no tienen datos de las ventas de todos los libros dejados en depósitos con fecha posterior al 30 de septiembre (en el caso de haberlos dejado en depósito durante 3 meses). En este caso, la editorial solo tiene datos de facturación de los primeros 9 meses del año.', MARGIN_L + indent, y, CONTENT_W - indent, lineH, { align: 'justify' });
+  y += 3;
+  y = addText(doc, '2. Las distribuidoras no tienen datos de las ventas de todos los libros dejados en depósito con fecha posterior al 30 de junio (en el caso de haberlos dejado en depósito durante 6 meses). En este caso, la editorial solo tiene datos de facturación de los primeros 6 meses del año.', MARGIN_L + indent, y, CONTENT_W - indent, lineH, { align: 'justify' });
+  y += 8;
+
+  // ========== BLUE BOX ==========
+  // Measure box content height first
+  let boxH = boxPadding;
+
+  boxH += measureTextHeight(doc, `Informe de ventas ${liq.year}:`, boxInnerW, lineH, { bold: true }) + 4;
+  boxH += measureTextHeight(doc, `- Nombre autor/a: ${author}`, boxInnerW, lineH) + 5;
+
+  const salesIndent = 8;
+  const salesW = boxInnerW - salesIndent;
 
   for (const item of authorItems) {
-    bY = addWrappedText(doc, `- Título: ${item.book_title}`, MARGIN_L + boxPadding, bY, boxInnerW, lineH);
-    bY += 2;
-    const indentX = MARGIN_L + boxPadding + 8;
-    const indentW = boxInnerW - 8;
-    bY = addWrappedText(doc, `- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${item.distributor_units} ejemplares: ${formatEur(item.distributor_amount)}`, indentX, bY, indentW, lineH);
-    bY = addWrappedText(doc, `- Venta web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${item.online_units} ejemplares: ${formatEur(item.online_amount)}`, indentX, bY, indentW, lineH);
-    bY = addWrappedText(doc, `- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}`, indentX, bY, indentW, lineH);
-    bY += 3;
+    boxH += measureTextHeight(doc, `- Título: ${item.book_title}`, boxInnerW, lineH) + 4;
+    boxH += measureTextHeight(doc, `- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${item.distributor_units} ejemplares: ${formatEur(item.distributor_amount)}`, salesW, lineH);
+    boxH += 2;
+    boxH += measureTextHeight(doc, `- Venta en nuestra web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${item.online_units} ejemplares: ${formatEur(item.online_amount)}`, salesW, lineH);
+    boxH += 2;
+    boxH += measureTextHeight(doc, `- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}`, salesW, lineH);
+    boxH += 5;
   }
 
-  // Total line
   const total = authorItems.reduce((s, i) => s + i.total_amount, 0);
+  boxH += lineH + 2; // TOTAL line
+  boxH += boxPadding;
+
+  // Check if box fits, otherwise new page
+  if (y + boxH > PAGE_H - 25) {
+    doc.addPage();
+    y = MARGIN_T;
+  }
+
+  // Draw blue box background
+  const boxStartY = y;
+  doc.setFillColor(198, 217, 241); // #C6D9F1 like the DOCX
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.rect(MARGIN_L, boxStartY, CONTENT_W, boxH, 'FD');
+
+  // Render box content
+  let bY = boxStartY + boxPadding;
+
+  bY = addText(doc, `Informe de ventas ${liq.year}:`, MARGIN_L + boxPadding, bY, boxInnerW, lineH, { bold: true, underline: true });
+  bY += 4;
+
+  bY = addText(doc, `- Nombre autor/a: ${author}`, MARGIN_L + boxPadding, bY, boxInnerW, lineH);
+  bY += 5;
+
+  for (const item of authorItems) {
+    bY = addText(doc, `- Título: ${item.book_title}`, MARGIN_L + boxPadding, bY, boxInnerW, lineH);
+    bY += 4;
+
+    const indentX = MARGIN_L + boxPadding + salesIndent;
+
+    bY = addText(doc, `- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${item.distributor_units} ejemplares: ${formatEur(item.distributor_amount)}`, indentX, bY, salesW, lineH);
+    bY += 2;
+    bY = addText(doc, `- Venta en nuestra web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${item.online_units} ejemplares: ${formatEur(item.online_amount)}`, indentX, bY, salesW, lineH);
+    bY += 2;
+    bY = addText(doc, `- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}`, indentX, bY, salesW, lineH);
+    bY += 5;
+  }
+
+  // TOTAL line: "TOTAL:" bold + amount italic
   doc.setFont('helvetica', 'bold');
   const totalLabel = 'TOTAL: ';
   doc.text(totalLabel, MARGIN_L + boxPadding, bY);
@@ -241,41 +248,76 @@ function rebuildWithBox(author: string, authorItems: LiquidationItem[], liq: Liq
   doc.setFont('helvetica', 'italic');
   doc.text(formatEur(total), MARGIN_L + boxPadding + tw, bY);
   doc.setFont('helvetica', 'normal');
-  bY += lineH + 2;
 
-  y = boxStartY + h + 5;
+  // ========== PAGE 2 ==========
+  doc.addPage();
+  y = MARGIN_T;
 
-  // Footer
-  y = addWrappedText(doc, 'Para que la editorial pueda realizar el pago, lo más conveniente, para agilizar el proceso de cobro, es que como autor/a realice una factura por PayPal a icidre@apuleyoediciones.com IMPORTANTE QUE SEA FACTURA Y NO UNA PETICIÓN DE PAGO.', MARGIN_L, y, CONTENT_W, lineH);
+  // Footer text (justified)
+  y = addText(
+    doc,
+    'Para que la editorial pueda realizar el pago, lo más conveniente, para agilizar el proceso de cobro, es que como autor/a realice una factura por PayPal a icidre@apuleyoediciones.com.',
+    MARGIN_L, y, CONTENT_W, lineH, { align: 'justify' }
+  );
   y += 2;
-  y = addWrappedText(doc, 'Recomendamos la primera opción, para evitar trámites.', MARGIN_L, y, CONTENT_W, lineH);
+
+  // "IMPORTANTE..." bold
+  y = addText(
+    doc,
+    'IMPORTANTE QUE SEA FACTURA Y NO UNA PETICIÓN DE PAGO.',
+    MARGIN_L, y, CONTENT_W, lineH, { bold: true }
+  );
+  y += 4;
+
+  y = addText(doc, 'Recomendamos la primera opción, para evitar trámites.', MARGIN_L, y, CONTENT_W, lineH, { align: 'justify' });
+  y += 8;
+
+  y = addText(doc, 'Os facilitamos un vídeo para usarlo como guía en caso de tener ciertas dificultades con la factura:', MARGIN_L, y, CONTENT_W, lineH, { align: 'justify' });
   y += 2;
-  y = addWrappedText(doc, 'Os facilitamos un vídeo para usarlo como guía en caso de tener ciertas dificultades con la factura:', MARGIN_L, y, CONTENT_W, lineH);
-  y = addWrappedText(doc, 'https://youtu.be/eVC-zxlDuLE?si=Hx10Vj7v34z1160r', MARGIN_L, y, CONTENT_W, lineH);
-  y += 5;
-  y = addWrappedText(doc, 'Sellado:', MARGIN_L, y, CONTENT_W, lineH);
+
+  // Link (blue, underlined)
+  doc.setTextColor(0, 0, 255);
+  y = addText(doc, 'https://youtu.be/eVC-zxlDuLE?si=Hx10Vj7v34z1160r', MARGIN_L, y, CONTENT_W, lineH, { underline: true });
+  doc.setTextColor(0, 0, 0);
+  y += 10;
+
+  // "Sellado:"
+  y = addText(doc, 'Sellado:', MARGIN_L, y, CONTENT_W, lineH);
+  y += 4;
+
+  // Stamp logo
+  if (stampLogoData) {
+    const stampW = 40;
+    const stampH = 22;
+    doc.addImage(stampLogoData, 'PNG', MARGIN_L, y, stampW, stampH);
+    y += stampH + 2;
+  }
+
+  // CIF text
+  doc.setFontSize(8);
+  y = addText(doc, 'CIF: B44667327', MARGIN_L, y, CONTENT_W, 4);
+  doc.setFontSize(11);
 
   return doc;
 }
 
-const boxInnerW = CONTENT_W - 8; // boxPadding * 2
-
-export function generateAuthorPDF(
+export async function generateAuthorPDF(
   author: string,
   items: LiquidationItem[],
   liquidation: Liquidation,
-): Blob {
+): Promise<Blob> {
+  await ensureLogosLoaded();
   const authorItems = items.filter(i => i.author === author);
-  const doc = rebuildWithBox(author, authorItems, liquidation);
+  const doc = buildAuthorPDF(author, authorItems, liquidation);
   return doc.output('blob');
 }
 
-export function downloadAuthorPDF(
+export async function downloadAuthorPDF(
   author: string,
   items: LiquidationItem[],
   liquidation: Liquidation,
 ) {
-  const blob = generateAuthorPDF(author, items, liquidation);
+  const blob = await generateAuthorPDF(author, items, liquidation);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
