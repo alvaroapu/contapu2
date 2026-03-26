@@ -32,6 +32,10 @@ export default function Catalogo() {
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+
+  const deleteAll = useDeleteAllBooks();
+  const exportCatalog = useExportCatalog();
 
   const { data: authors = [] } = useAuthors();
 
