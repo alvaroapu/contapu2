@@ -9,8 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { BookFormDialog } from '@/components/catalogo/BookFormDialog';
 import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
-import { Plus, Upload, ArrowUpDown } from 'lucide-react';
+import { Plus, Upload, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDeleteAllBooks, useExportCatalog } from '@/hooks/useBooks';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const PAGE_SIZE = 20;
 
