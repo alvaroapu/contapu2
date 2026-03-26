@@ -70,7 +70,11 @@ export function useAuthors() {
         .select('author')
         .order('author');
       if (error) throw error;
-      const unique = [...new Set((data ?? []).map((d: { author: string }) => d.author))];
+      const unique = [...new Set(
+        (data ?? [])
+          .map((d: { author: string | null }) => d.author?.trim())
+          .filter((author): author is string => Boolean(author))
+      )];
       return unique;
     },
   });

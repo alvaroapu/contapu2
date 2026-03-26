@@ -118,7 +118,7 @@ export default function Catalogo() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            {authors.map((a) => (
+            {authors.filter(Boolean).map((a) => (
               <SelectItem key={a} value={a}>{a}</SelectItem>
             ))}
           </SelectContent>
