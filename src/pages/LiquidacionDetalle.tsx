@@ -183,7 +183,7 @@ export default function LiquidacionDetalle() {
           <Button variant="outline" size="sm" onClick={handleExportExcel}>
             <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={handleGenerateAllPDF} disabled={genAllLoading}>
+          <Button variant="outline" size="sm" onClick={handleGenerateAllDOCX} disabled={genAllLoading}>
             {genAllLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
             Todos los informes
           </Button>
