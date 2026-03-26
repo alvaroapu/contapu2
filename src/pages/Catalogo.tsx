@@ -34,11 +34,12 @@ export default function Catalogo() {
     search: debouncedSearch,
     status: statusFilter,
     author: authorFilter,
+    missingIsbn,
     page,
     pageSize: PAGE_SIZE,
     sortColumn,
     sortDirection,
-  }), [debouncedSearch, statusFilter, authorFilter, page, sortColumn, sortDirection]);
+  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, sortColumn, sortDirection]);
 
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
