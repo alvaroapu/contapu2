@@ -137,10 +137,10 @@ export default function LiquidacionDetalle() {
     setGenAllLoading(false);
   };
 
-  const handleDownloadAuthorPDF = async (author: string) => {
+  const handleDownloadAuthorDOCX = async (author: string) => {
     if (!liq) return;
     const allItems = await fetchAllLiquidationItems(liq.id);
-    downloadAuthorPDF(author, allItems, liq);
+    downloadAuthorDOCX(author, allItems, liq);
   };
 
   if (liqLoading) return <div className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>;
