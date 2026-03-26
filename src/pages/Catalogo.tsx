@@ -310,6 +310,30 @@ export default function Catalogo() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={deleteBulkOpen} onOpenChange={setDeleteBulkOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar {selectedIds.size} libro(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán los libros seleccionados. Los que tengan ventas asociadas no podrán eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                deleteBooks.mutate([...selectedIds], { onSuccess: () => setSelectedIds(new Set()) });
+                setDeleteBulkOpen(false);
+              }}
+              disabled={deleteBooks.isPending}
+            >
+              {deleteBooks.isPending ? 'Eliminando…' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
