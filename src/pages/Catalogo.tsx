@@ -9,8 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { BookFormDialog } from '@/components/catalogo/BookFormDialog';
 import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
-import { Plus, Upload, ArrowUpDown } from 'lucide-react';
+import { Plus, Upload, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDeleteAllBooks, useExportCatalog } from '@/hooks/useBooks';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +32,10 @@ export default function Catalogo() {
   const [formOpen, setFormOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+
+  const deleteAll = useDeleteAllBooks();
+  const exportCatalog = useExportCatalog();
 
   const { data: authors = [] } = useAuthors();
 
@@ -86,10 +95,16 @@ export default function Catalogo() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Catálogo de Libros</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => exportCatalog.mutate()} disabled={exportCatalog.isPending}>
+            <Download className="mr-2 h-4 w-4" /> {exportCatalog.isPending ? 'Exportando…' : 'Exportar'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
-          <Button onClick={openNew}>
+          <Button variant="destructive" size="sm" onClick={() => setDeleteAllOpen(true)}>
+            <Trash2 className="mr-2 h-4 w-4" /> Eliminar todo
+          </Button>
+          <Button size="sm" onClick={openNew}>
             <Plus className="mr-2 h-4 w-4" /> Nuevo libro
           </Button>
         </div>
@@ -207,6 +222,27 @@ export default function Catalogo() {
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar todo el catálogo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará todos los libros del catálogo. Los libros con movimientos de ventas asociados no podrán ser eliminados. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteAll.mutate()}
+              disabled={deleteAll.isPending}
+            >
+              {deleteAll.isPending ? 'Eliminando…' : 'Eliminar todo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
