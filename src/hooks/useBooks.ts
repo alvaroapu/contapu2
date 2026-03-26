@@ -220,9 +220,7 @@ export function useExportCatalog() {
         if (data.length < pageSize) break;
         from += pageSize;
       }
-      const books = data as Book[];
-
-      const rows = books.map(b => ({
+      const rows = allBooks.map(b => ({
         Título: b.title,
         Autor: b.author,
         ISBN: b.isbn ?? '',
