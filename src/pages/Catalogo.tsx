@@ -101,6 +101,11 @@ export default function Catalogo() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Catálogo de Libros</h1>
         <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={() => setDeleteBulkOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedIds.size})
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => exportCatalog.mutate()} disabled={exportCatalog.isPending}>
             <Download className="mr-2 h-4 w-4" /> {exportCatalog.isPending ? 'Exportando…' : 'Exportar'}
           </Button>
