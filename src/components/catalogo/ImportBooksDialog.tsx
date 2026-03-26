@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkInsertBooks } from '@/hooks/useBooks';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload } from 'lucide-react';
+import { Upload, Undo2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   open: boolean;
