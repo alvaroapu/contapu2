@@ -159,6 +159,24 @@ export function useDeleteBook() {
   });
 }
 
+export function useDeleteBooks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (bookIds: string[]) => {
+      const { error } = await supabase.from('books').delete().in('id', bookIds);
+      if (error) throw error;
+    },
+    onSuccess: (_data, bookIds) => {
+      qc.invalidateQueries({ queryKey: ['books'] });
+      qc.invalidateQueries({ queryKey: ['authors'] });
+      toast.success(`${bookIds.length} libro(s) eliminado(s)`);
+    },
+    onError: (err: any) => {
+      toast.error(err.message ?? 'Error al eliminar. Algunos libros pueden tener ventas asociadas.');
+    },
+  });
+}
+
 export function useDeleteAllBooks() {
   const qc = useQueryClient();
   return useMutation({

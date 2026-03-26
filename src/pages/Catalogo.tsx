@@ -11,7 +11,8 @@ import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
 import { Plus, Upload, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDeleteAllBooks, useDeleteBook, useExportCatalog } from '@/hooks/useBooks';
+import { useDeleteAllBooks, useDeleteBook, useDeleteBooks, useExportCatalog } from '@/hooks/useBooks';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -34,9 +35,12 @@ export default function Catalogo() {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
   const deleteBook = useDeleteBook();
+  const deleteBooks = useDeleteBooks();
   const exportCatalog = useExportCatalog();
 
   const { data: authors = [] } = useAuthors();
@@ -97,6 +101,11 @@ export default function Catalogo() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Catálogo de Libros</h1>
         <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={() => setDeleteBulkOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedIds.size})
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => exportCatalog.mutate()} disabled={exportCatalog.isPending}>
             <Download className="mr-2 h-4 w-4" /> {exportCatalog.isPending ? 'Exportando…' : 'Exportar'}
           </Button>
@@ -157,6 +166,18 @@ export default function Catalogo() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={books.length > 0 && books.every(b => selectedIds.has(b.id))}
+                  onCheckedChange={(checked) => {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      books.forEach(b => checked ? next.add(b.id) : next.delete(b.id));
+                      return next;
+                    });
+                  }}
+                />
+              </TableHead>
               <SortHeader col="title" label="Título" />
               <SortHeader col="author" label="Autor" />
               <TableHead>ISBN</TableHead>
@@ -171,14 +192,14 @@ export default function Catalogo() {
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 8 }).map((_, j) => (
+                    {Array.from({ length: 9 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               : books.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
                       No se encontraron libros
                     </TableCell>
                   </TableRow>
@@ -188,7 +209,20 @@ export default function Catalogo() {
                     key={book.id}
                     className="cursor-pointer"
                     onClick={() => openEdit(book)}
+                    data-state={selectedIds.has(book.id) ? 'selected' : undefined}
                   >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(book.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedIds(prev => {
+                            const next = new Set(prev);
+                            checked ? next.add(book.id) : next.delete(book.id);
+                            return next;
+                          });
+                        }}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium max-w-[250px] truncate">{book.title}</TableCell>
                     <TableCell>{book.author}</TableCell>
                     <TableCell className="text-xs">{book.isbn ?? '—'}</TableCell>
@@ -272,6 +306,30 @@ export default function Catalogo() {
               disabled={deleteAll.isPending}
             >
               {deleteAll.isPending ? 'Eliminando…' : 'Eliminar todo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteBulkOpen} onOpenChange={setDeleteBulkOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar {selectedIds.size} libro(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán los libros seleccionados. Los que tengan ventas asociadas no podrán eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                deleteBooks.mutate([...selectedIds], { onSuccess: () => setSelectedIds(new Set()) });
+                setDeleteBulkOpen(false);
+              }}
+              disabled={deleteBooks.isPending}
+            >
+              {deleteBooks.isPending ? 'Eliminando…' : 'Eliminar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
