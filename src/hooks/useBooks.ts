@@ -145,6 +145,13 @@ export function useDeleteAllBooks() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      // Delete dependent records first
+      const { error: e1 } = await supabase.from('sales_movements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('liquidation_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (e2) throw e2;
+      const { error: e3 } = await supabase.from('import_batches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (e3) throw e3;
       const { error } = await supabase.from('books').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       if (error) throw error;
     },
