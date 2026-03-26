@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { downloadAuthorPDF, generateAuthorPDF } from '@/components/liquidaciones/LiquidacionPDF';
+import { downloadAuthorDOCX, generateAuthorDOCX } from '@/components/liquidaciones/LiquidacionDOCX';
 import { exportLiquidationExcel } from '@/components/liquidaciones/LiquidacionExcel';
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
@@ -112,7 +112,7 @@ export default function LiquidacionDetalle() {
     exportLiquidationExcel(allItems, liq);
   };
 
-  const handleGenerateAllPDF = async () => {
+  const handleGenerateAllDOCX = async () => {
     if (!liq) return;
     setGenAllLoading(true);
     try {
@@ -120,14 +120,14 @@ export default function LiquidacionDetalle() {
       const authorsSet = [...new Set(allItems.map(i => i.author))].sort();
       const zip = new JSZip();
       for (const author of authorsSet) {
-        const blob = await generateAuthorPDF(author, allItems, liq);
-        zip.file(`Liquidacion_${liq.year}_${author.replace(/\s+/g, '_')}.pdf`, blob);
+        const blob = await generateAuthorDOCX(author, allItems, liq);
+        zip.file(`Liquidacion_${liq.year}_${author.replace(/\s+/g, '_')}.docx`, blob);
       }
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Liquidaciones_${liq.year}_PDF.zip`;
+      a.download = `Liquidaciones_${liq.year}_DOCX.zip`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`${authorsSet.length} documentos generados`);
@@ -137,11 +137,10 @@ export default function LiquidacionDetalle() {
     setGenAllLoading(false);
   };
 
-  const handleDownloadAuthorPDF = (author: string) => {
+  const handleDownloadAuthorDOCX = async (author: string) => {
     if (!liq) return;
-    fetchAllLiquidationItems(liq.id).then(allItems => {
-      downloadAuthorPDF(author, allItems, liq);
-    });
+    const allItems = await fetchAllLiquidationItems(liq.id);
+    downloadAuthorDOCX(author, allItems, liq);
   };
 
   if (liqLoading) return <div className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>;
@@ -184,7 +183,7 @@ export default function LiquidacionDetalle() {
           <Button variant="outline" size="sm" onClick={handleExportExcel}>
             <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={handleGenerateAllPDF} disabled={genAllLoading}>
+          <Button variant="outline" size="sm" onClick={handleGenerateAllDOCX} disabled={genAllLoading}>
             {genAllLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
             Todos los informes
           </Button>
@@ -322,7 +321,7 @@ export default function LiquidacionDetalle() {
                           {idx === 0 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleDownloadAuthorPDF(author)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleDownloadAuthorDOCX(author)}>
                                   <Download className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
