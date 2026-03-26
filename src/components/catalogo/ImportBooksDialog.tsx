@@ -258,28 +258,51 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
     const withoutIsbn = toImport.filter(b => !b.isbn);
     const total = Math.ceil(withIsbn.length / CHUNK) + Math.ceil(withoutIsbn.length / CHUNK) || 1;
     let done = 0;
+    const importedIds: string[] = [];
 
     try {
       for (let i = 0; i < withIsbn.length; i += CHUNK) {
-        await bulkInsert.mutateAsync(withIsbn.slice(i, i + CHUNK));
+        const ids = await bulkInsert.mutateAsync(withIsbn.slice(i, i + CHUNK));
+        importedIds.push(...ids);
         done++;
         setProgress(Math.round((done / total) * 100));
       }
       for (let i = 0; i < withoutIsbn.length; i += CHUNK) {
         const chunk = withoutIsbn.slice(i, i + CHUNK);
-        const { error } = await supabase.from('books').insert(chunk as any);
+        const { data, error } = await supabase.from('books').insert(chunk as any).select('id');
         if (error) throw error;
+        importedIds.push(...(data ?? []).map((r: { id: string }) => r.id));
         done++;
         setProgress(Math.round((done / total) * 100));
       }
 
+      setLastImportedIds(importedIds);
       toast.success(`Importación completada: ${toImport.length} libros procesados`);
-      onOpenChange(false);
       setRows([]);
     } catch (err: any) {
       toast.error(err.message ?? 'Error en la importación');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleRevert = async () => {
+    if (lastImportedIds.length === 0) return;
+    setReverting(true);
+    try {
+      const CHUNK = 50;
+      for (let i = 0; i < lastImportedIds.length; i += CHUNK) {
+        const ids = lastImportedIds.slice(i, i + CHUNK);
+        const { error } = await supabase.from('books').delete().in('id', ids);
+        if (error) throw error;
+      }
+      toast.success(`Importación revertida: ${lastImportedIds.length} libros eliminados`);
+      setLastImportedIds([]);
+      bulkInsert.reset();
+    } catch (err: any) {
+      toast.error(err.message ?? 'Error al revertir');
+    } finally {
+      setReverting(false);
     }
   };
 
