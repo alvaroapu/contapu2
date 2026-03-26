@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkInsertBooks } from '@/hooks/useBooks';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload } from 'lucide-react';
+import { Upload, Undo2 } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -121,6 +121,8 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [lastImportedIds, setLastImportedIds] = useState<string[]>([]);
+  const [reverting, setReverting] = useState(false);
   const bulkInsert = useBulkInsertBooks();
 
   const stats = {
@@ -256,28 +258,51 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
     const withoutIsbn = toImport.filter(b => !b.isbn);
     const total = Math.ceil(withIsbn.length / CHUNK) + Math.ceil(withoutIsbn.length / CHUNK) || 1;
     let done = 0;
+    const importedIds: string[] = [];
 
     try {
       for (let i = 0; i < withIsbn.length; i += CHUNK) {
-        await bulkInsert.mutateAsync(withIsbn.slice(i, i + CHUNK));
+        const ids = await bulkInsert.mutateAsync(withIsbn.slice(i, i + CHUNK));
+        importedIds.push(...ids);
         done++;
         setProgress(Math.round((done / total) * 100));
       }
       for (let i = 0; i < withoutIsbn.length; i += CHUNK) {
         const chunk = withoutIsbn.slice(i, i + CHUNK);
-        const { error } = await supabase.from('books').insert(chunk as any);
+        const { data, error } = await supabase.from('books').insert(chunk as any).select('id');
         if (error) throw error;
+        importedIds.push(...(data ?? []).map((r: { id: string }) => r.id));
         done++;
         setProgress(Math.round((done / total) * 100));
       }
 
+      setLastImportedIds(importedIds);
       toast.success(`Importación completada: ${toImport.length} libros procesados`);
-      onOpenChange(false);
       setRows([]);
     } catch (err: any) {
       toast.error(err.message ?? 'Error en la importación');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleRevert = async () => {
+    if (lastImportedIds.length === 0) return;
+    setReverting(true);
+    try {
+      const CHUNK = 50;
+      for (let i = 0; i < lastImportedIds.length; i += CHUNK) {
+        const ids = lastImportedIds.slice(i, i + CHUNK);
+        const { error } = await supabase.from('books').delete().in('id', ids);
+        if (error) throw error;
+      }
+      toast.success(`Importación revertida: ${lastImportedIds.length} libros eliminados`);
+      setLastImportedIds([]);
+      bulkInsert.reset();
+    } catch (err: any) {
+      toast.error(err.message ?? 'Error al revertir');
+    } finally {
+      setReverting(false);
     }
   };
 
@@ -293,13 +318,13 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!importing) { onOpenChange(v); setRows([]); } }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!importing && !reverting) { onOpenChange(v); setRows([]); setLastImportedIds([]); } }}>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Importar catálogo</DialogTitle>
         </DialogHeader>
 
-        {rows.length === 0 ? (
+        {rows.length === 0 && lastImportedIds.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <Upload className="h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
@@ -311,6 +336,28 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
               onChange={handleFile}
               className="text-sm"
             />
+          </div>
+        ) : rows.length === 0 && lastImportedIds.length > 0 ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Undo2 className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm text-center text-muted-foreground">
+              Se importaron <strong>{lastImportedIds.length}</strong> libros correctamente.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                onClick={handleRevert}
+                disabled={reverting}
+              >
+                {reverting ? 'Revirtiendo…' : 'Revertir importación'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => { setLastImportedIds([]); onOpenChange(false); }}
+              >
+                Cerrar
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3 flex-1 min-h-0 flex flex-col">
