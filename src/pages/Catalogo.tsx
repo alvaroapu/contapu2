@@ -125,6 +125,14 @@ export default function Catalogo() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant={missingIsbn ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setMissingIsbn(v => !v); setPage(0); }}
+          className="whitespace-nowrap"
+        >
+          Sin ISBN
+        </Button>
       </div>
 
       {/* Table */}
