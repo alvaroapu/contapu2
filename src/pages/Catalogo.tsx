@@ -35,9 +35,12 @@ export default function Catalogo() {
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
   const deleteBook = useDeleteBook();
+  const deleteBooks = useDeleteBooks();
   const exportCatalog = useExportCatalog();
 
   const { data: authors = [] } = useAuthors();
