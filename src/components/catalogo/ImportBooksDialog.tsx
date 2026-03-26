@@ -85,55 +85,84 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-    if (rows.length < 2) {
-      toast.error('El archivo está vacío');
-      return;
-    }
+      if (rows.length < 2) {
+        toast.error('El archivo está vacío o no tiene datos');
+        return;
+      }
 
-    const headerMap = mapHeaders(rows[0].map(String));
-    const books: ParsedBook[] = [];
+      const headerMap = mapHeaders(rows[0].map(String));
 
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || row.length === 0) continue;
+      if (Object.keys(headerMap).length === 0) {
+        toast.error(
+          'No se reconocieron las columnas. Asegúrate de que el archivo tiene cabeceras como: título, autor, isbn, pvp, fecha, referencia'
+        );
+        return;
+      }
 
-      const record: any = {};
-      Object.entries(headerMap).forEach(([colIdx, field]) => {
-        record[field] = row[Number(colIdx)] ?? null;
+      const hasTitle = Object.values(headerMap).includes('title');
+      const hasAuthor = Object.values(headerMap).includes('author');
+      if (!hasTitle || !hasAuthor) {
+        toast.error(
+          `Faltan columnas obligatorias: ${!hasTitle ? 'Título' : ''}${!hasTitle && !hasAuthor ? ' y ' : ''}${!hasAuthor ? 'Autor' : ''}`
+        );
+        return;
+      }
+
+      const books: ParsedBook[] = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.every(cell => cell === null || cell === undefined || cell === '')) continue;
+
+        const record: any = {};
+        Object.entries(headerMap).forEach(([colIdx, field]) => {
+          record[field] = row[Number(colIdx)] ?? null;
+        });
+
+        if (!record.title && !record.author) continue;
+
+        books.push({
+          isbn: record.isbn ? String(record.isbn).trim() : null,
+          title: String(record.title ?? '').trim(),
+          author: String(record.author ?? '').trim(),
+          pvp: parseFloat(record.pvp) || 0,
+          publication_date: parseSpreadsheetDate(record.publication_date),
+          maidhisa_ref: record.maidhisa_ref ? String(record.maidhisa_ref).trim() : null,
+          ean: record.ean ? String(record.ean).trim() : null,
+        });
+      }
+
+      if (books.length === 0) {
+        toast.error('No se encontraron libros válidos en el archivo');
+        return;
+      }
+
+      // Check existing ISBNs
+      const isbns = books.filter(b => b.isbn).map(b => b.isbn!);
+      let existingIsbns = new Set<string>();
+      if (isbns.length > 0) {
+        const { data: existing } = await supabase.from('books').select('isbn').in('isbn', isbns);
+        existingIsbns = new Set((existing ?? []).map((d: { isbn: string }) => d.isbn));
+      }
+
+      setParsed(books);
+      setStats({
+        newCount: books.filter(b => b.isbn && !existingIsbns.has(b.isbn)).length,
+        existingCount: books.filter(b => b.isbn && existingIsbns.has(b.isbn)).length,
+        noIsbn: books.filter(b => !b.isbn).length,
       });
 
-      if (!record.title && !record.author) continue;
-
-      books.push({
-        isbn: record.isbn ? String(record.isbn).trim() : null,
-        title: String(record.title ?? '').trim(),
-        author: String(record.author ?? '').trim(),
-        pvp: parseFloat(record.pvp) || 0,
-        publication_date: parseSpreadsheetDate(record.publication_date),
-        maidhisa_ref: record.maidhisa_ref ? String(record.maidhisa_ref).trim() : null,
-        ean: record.ean ? String(record.ean).trim() : null,
-      });
+      toast.success(`${books.length} libros leídos del archivo`);
+    } catch (err: any) {
+      console.error('Error parsing file:', err);
+      toast.error(`Error al leer el archivo: ${err.message ?? 'formato no válido'}`);
     }
-
-    // Check existing ISBNs
-    const isbns = books.filter(b => b.isbn).map(b => b.isbn!);
-    let existingIsbns = new Set<string>();
-    if (isbns.length > 0) {
-      const { data } = await supabase.from('books').select('isbn').in('isbn', isbns);
-      existingIsbns = new Set((data ?? []).map((d: { isbn: string }) => d.isbn));
-    }
-
-    setParsed(books);
-    setStats({
-      newCount: books.filter(b => b.isbn && !existingIsbns.has(b.isbn)).length,
-      existingCount: books.filter(b => b.isbn && existingIsbns.has(b.isbn)).length,
-      noIsbn: books.filter(b => !b.isbn).length,
-    });
   }, []);
 
   const handleImport = async () => {
