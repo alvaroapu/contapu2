@@ -73,10 +73,10 @@ export async function generateAuthorDOCX(
 
   let xml = await zip.file('word/document.xml')!.async('string');
 
-  // 1. Replace "Dirigido a [original author name]" paragraph
+  // 1. Replace the "Dirigido a" paragraph entirely
   xml = xml.replace(
-    /(<w:t xml:space="preserve">Dirigido a <\/w:t>)(.*?)(<w:r w:rsidR="00A72A19"><w:t>\.<\/w:t><\/w:r>)/s,
-    `<w:t xml:space="preserve">Dirigido a ${escapeXml(author)}.</w:t></w:r>`
+    /<w:p [^>]*>[\s\S]*?<w:t xml:space="preserve">Dirigido a <\/w:t>[\s\S]*?<\/w:p>/,
+    `<w:p><w:pPr><w:jc w:val="both"/></w:pPr><w:r><w:t xml:space="preserve">Dirigido a ${escapeXml(author)}.</w:t></w:r></w:p>`
   );
   
   // 2. Replace year references in body text
