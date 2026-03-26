@@ -19,6 +19,7 @@ export default function Catalogo() {
   const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
+  const [missingIsbn, setMissingIsbn] = useState(false);
   const [page, setPage] = useState(0);
   const [sortColumn, setSortColumn] = useState('title');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -33,11 +34,12 @@ export default function Catalogo() {
     search: debouncedSearch,
     status: statusFilter,
     author: authorFilter,
+    missingIsbn,
     page,
     pageSize: PAGE_SIZE,
     sortColumn,
     sortDirection,
-  }), [debouncedSearch, statusFilter, authorFilter, page, sortColumn, sortDirection]);
+  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, sortColumn, sortDirection]);
 
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
@@ -123,6 +125,14 @@ export default function Catalogo() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant={missingIsbn ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setMissingIsbn(v => !v); setPage(0); }}
+          className="whitespace-nowrap"
+        >
+          Sin ISBN
+        </Button>
       </div>
 
       {/* Table */}
