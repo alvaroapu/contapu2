@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { downloadAuthorPDF, generateAuthorPDF } from '@/components/liquidaciones/LiquidacionPDF';
+import { downloadAuthorDOCX, generateAuthorDOCX } from '@/components/liquidaciones/LiquidacionDOCX';
 import { exportLiquidationExcel } from '@/components/liquidaciones/LiquidacionExcel';
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
