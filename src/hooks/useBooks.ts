@@ -140,3 +140,56 @@ export function useBulkInsertBooks() {
     },
   });
 }
+
+export function useDeleteAllBooks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('books').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['books'] });
+      qc.invalidateQueries({ queryKey: ['authors'] });
+      toast.success('Catálogo eliminado');
+    },
+    onError: (err: any) => {
+      toast.error(err.message ?? 'Error al eliminar. Puede que haya libros con ventas asociadas.');
+    },
+  });
+}
+
+export function useExportCatalog() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .order('title');
+      if (error) throw error;
+      const books = data as Book[];
+
+      const rows = books.map(b => ({
+        Título: b.title,
+        Autor: b.author,
+        ISBN: b.isbn ?? '',
+        EAN: b.ean ?? '',
+        PVP: b.pvp,
+        'Fecha publicación': b.publication_date ?? '',
+        Estado: b.status,
+        'Ref. Maidhisa': b.maidhisa_ref ?? '',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 40 }, { wch: 25 }, { wch: 16 }, { wch: 16 },
+        { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 14 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Catálogo');
+      XLSX.writeFile(wb, 'Catalogo_Libros.xlsx');
+    },
+    onSuccess: () => toast.success('Excel exportado'),
+    onError: (err: any) => toast.error(err.message ?? 'Error al exportar'),
+  });
+}
