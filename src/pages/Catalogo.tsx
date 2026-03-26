@@ -222,6 +222,27 @@ export default function Catalogo() {
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar todo el catálogo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará todos los libros del catálogo. Los libros con movimientos de ventas asociados no podrán ser eliminados. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteAll.mutate()}
+              disabled={deleteAll.isPending}
+            >
+              {deleteAll.isPending ? 'Eliminando…' : 'Eliminar todo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
