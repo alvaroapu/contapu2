@@ -11,7 +11,7 @@ import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
 import { Plus, Upload, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDeleteAllBooks, useExportCatalog } from '@/hooks/useBooks';
+import { useDeleteAllBooks, useDeleteBook, useExportCatalog } from '@/hooks/useBooks';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -33,8 +33,10 @@ export default function Catalogo() {
   const [importOpen, setImportOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
 
   const deleteAll = useDeleteAllBooks();
+  const deleteBook = useDeleteBook();
   const exportCatalog = useExportCatalog();
 
   const { data: authors = [] } = useAuthors();
@@ -162,20 +164,21 @@ export default function Catalogo() {
               <SortHeader col="publication_date" label="Fecha pub." />
               <TableHead>Estado</TableHead>
               <TableHead>Ref. Maidhisa</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               : books.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                       No se encontraron libros
                     </TableCell>
                   </TableRow>
@@ -197,6 +200,16 @@ export default function Catalogo() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">{book.maidhisa_ref ?? '—'}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); setDeleteBookId(book.id); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
           </TableBody>
@@ -222,6 +235,26 @@ export default function Catalogo() {
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      <AlertDialog open={!!deleteBookId} onOpenChange={(v) => { if (!v) setDeleteBookId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este libro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el libro del catálogo. Si tiene ventas asociadas, no podrá eliminarse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deleteBookId) deleteBook.mutate(deleteBookId); setDeleteBookId(null); }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
         <AlertDialogContent>
