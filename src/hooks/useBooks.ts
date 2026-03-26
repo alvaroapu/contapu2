@@ -20,6 +20,7 @@ export interface BookFilters {
   search: string;
   status: string;
   author: string;
+  missingIsbn?: boolean;
   page: number;
   pageSize: number;
   sortColumn: string;
