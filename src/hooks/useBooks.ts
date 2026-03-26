@@ -205,14 +205,22 @@ export function useDeleteAllBooks() {
 export function useExportCatalog() {
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .order('title');
-      if (error) throw error;
-      const books = data as Book[];
-
-      const rows = books.map(b => ({
+      const allBooks: Book[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('books')
+          .select('*')
+          .order('title')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allBooks.push(...(data as Book[]));
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      const rows = allBooks.map(b => ({
         Título: b.title,
         Autor: b.author,
         ISBN: b.isbn ?? '',
