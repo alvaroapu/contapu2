@@ -120,7 +120,7 @@ export default function LiquidacionDetalle() {
       const authorsSet = [...new Set(allItems.map(i => i.author))].sort();
       const zip = new JSZip();
       for (const author of authorsSet) {
-        const blob = generateAuthorPDF(author, allItems, liq);
+        const blob = await generateAuthorPDF(author, allItems, liq);
         zip.file(`Liquidacion_${liq.year}_${author.replace(/\s+/g, '_')}.pdf`, blob);
       }
       const content = await zip.generateAsync({ type: 'blob' });
