@@ -166,6 +166,18 @@ export default function Catalogo() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={books.length > 0 && books.every(b => selectedIds.has(b.id))}
+                  onCheckedChange={(checked) => {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      books.forEach(b => checked ? next.add(b.id) : next.delete(b.id));
+                      return next;
+                    });
+                  }}
+                />
+              </TableHead>
               <SortHeader col="title" label="Título" />
               <SortHeader col="author" label="Autor" />
               <TableHead>ISBN</TableHead>
