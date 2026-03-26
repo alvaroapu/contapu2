@@ -121,6 +121,8 @@ export function ImportBooksDialog({ open, onOpenChange }: Props) {
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [lastImportedIds, setLastImportedIds] = useState<string[]>([]);
+  const [reverting, setReverting] = useState(false);
   const bulkInsert = useBulkInsertBooks();
 
   const stats = {
