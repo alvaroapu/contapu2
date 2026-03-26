@@ -325,7 +325,7 @@ export default function LiquidacionDetalle() {
                                   <Download className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Descargar PDF del autor</TooltipContent>
+                              <TooltipContent>Descargar informe del autor</TooltipContent>
                             </Tooltip>
                           )}
                         </TableCell>
