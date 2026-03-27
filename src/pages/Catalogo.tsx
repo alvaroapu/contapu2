@@ -18,7 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
 export default function Catalogo() {
   const [search, setSearch] = useState('');
@@ -27,6 +27,7 @@ export default function Catalogo() {
   const [authorFilter, setAuthorFilter] = useState('');
   const [missingIsbn, setMissingIsbn] = useState(false);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [sortColumn, setSortColumn] = useState('title');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -51,15 +52,15 @@ export default function Catalogo() {
     author: authorFilter,
     missingIsbn,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
     sortColumn,
     sortDirection,
-  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, sortColumn, sortDirection]);
+  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, pageSize, sortColumn, sortDirection]);
 
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
   const totalCount = data?.count ?? 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const handleSort = useCallback((col: string) => {
     if (sortColumn === col) {
@@ -251,11 +252,23 @@ export default function Catalogo() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm">
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <div className="flex items-center gap-3">
           <span className="text-muted-foreground">
-            {totalCount} libros · Página {page + 1} de {totalPages}
+            {totalCount} libros · Página {page + 1} de {Math.max(totalPages, 1)}
           </span>
+          <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(0); }}>
+            <SelectTrigger className="w-[130px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <SelectItem key={n} value={String(n)}>{n} por página</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {totalPages > 1 && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
               Anterior
@@ -264,8 +277,8 @@ export default function Catalogo() {
               Siguiente
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
