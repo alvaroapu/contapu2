@@ -252,11 +252,23 @@ export default function Catalogo() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm">
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <div className="flex items-center gap-3">
           <span className="text-muted-foreground">
-            {totalCount} libros · Página {page + 1} de {totalPages}
+            {totalCount} libros · Página {page + 1} de {Math.max(totalPages, 1)}
           </span>
+          <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(0); }}>
+            <SelectTrigger className="w-[130px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <SelectItem key={n} value={String(n)}>{n} por página</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {totalPages > 1 && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
               Anterior
@@ -265,8 +277,8 @@ export default function Catalogo() {
               Siguiente
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
