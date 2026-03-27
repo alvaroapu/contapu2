@@ -52,10 +52,10 @@ export default function Catalogo() {
     author: authorFilter,
     missingIsbn,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
     sortColumn,
     sortDirection,
-  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, sortColumn, sortDirection]);
+  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, pageSize, sortColumn, sortDirection]);
 
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
