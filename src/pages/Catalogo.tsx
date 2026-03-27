@@ -60,7 +60,7 @@ export default function Catalogo() {
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
   const totalCount = data?.count ?? 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const handleSort = useCallback((col: string) => {
     if (sortColumn === col) {
