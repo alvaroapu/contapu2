@@ -27,6 +27,7 @@ export default function Catalogo() {
   const [authorFilter, setAuthorFilter] = useState('');
   const [missingIsbn, setMissingIsbn] = useState(false);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [sortColumn, setSortColumn] = useState('title');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
