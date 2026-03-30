@@ -124,13 +124,40 @@ export function ImportResultView({ data, onBack }: Props) {
   async function createAllPending() {
     setBulkProcessing(true);
     let created = 0;
+    const updated = [...unmatchedEntries];
     try {
-      for (let idx = 0; idx < unmatchedEntries.length; idx++) {
-        if (unmatchedEntries[idx].status !== 'pending') continue;
-        await createAndAssign(idx);
+      for (let idx = 0; idx < updated.length; idx++) {
+        if (updated[idx].status !== 'pending') continue;
+        const entry = updated[idx];
+        const title = normalizeTitle(entry.title);
+        const bookData: any = { title, author: 'Sin especificar', pvp: 0, status: 'active' };
+        if (entry.isbn) bookData.isbn = entry.isbn;
+        if (entry.ean) bookData.ean = entry.ean;
+        if (entry.reference) bookData.maidhisa_ref = entry.reference;
+
+        const { data: newBook, error } = await supabase.from('books').insert(bookData).select('id').single() as any;
+        if (error) { console.error(error); continue; }
+
+        const distId = data.batch.distributor_id;
+        const movements: any[] = [];
+        if (entry.entradas > 0) movements.push({ book_id: newBook.id, distributor_id: distId, year: data.batch.year, month: data.batch.month, type: 'envio', quantity: entry.entradas, import_batch_id: data.batch.id });
+        if (entry.ventas > 0) movements.push({ book_id: newBook.id, distributor_id: distId, year: data.batch.year, month: data.batch.month, type: 'venta', quantity: entry.ventas, import_batch_id: data.batch.id });
+        if (entry.devoluciones > 0) movements.push({ book_id: newBook.id, distributor_id: distId, year: data.batch.year, month: data.batch.month, type: 'devolucion', quantity: entry.devoluciones, import_batch_id: data.batch.id });
+        if (movements.length > 0) await supabase.from('sales_movements').insert(movements) as any;
+
+        updated[idx] = { ...entry, status: 'assigned', assignedBookId: newBook.id };
         created++;
       }
+      setUnmatchedEntries(updated);
+      await supabase.from('import_batches').update({
+        records_imported: data.matched.length + updated.filter(e => e.status === 'assigned').length,
+        records_skipped: updated.filter(e => e.status === 'pending').length,
+        error_log: { unmatched: updated },
+      } as any).eq('id', data.batch.id);
       toast.success(`${created} libros creados y asignados`);
+      qc.invalidateQueries({ queryKey: ['sales'] });
+      qc.invalidateQueries({ queryKey: ['importBatches'] });
+      qc.invalidateQueries({ queryKey: ['books'] });
     } catch (err: any) {
       toast.error(err.message ?? 'Error en creación masiva');
     } finally {
