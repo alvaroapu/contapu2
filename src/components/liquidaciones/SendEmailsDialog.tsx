@@ -135,7 +135,11 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
     try {
       const blob = await generateAuthorDOCX(authorData.author, allItems, liquidation);
-      const fileName = `${liquidation.year}/${authorData.author.replace(/\s+/g, '_')}.docx`;
+      const sanitizedName = authorData.author
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/_+/g, '_');
+      const fileName = `${liquidation.year}/${sanitizedName}.docx`;
 
       const { error: uploadError } = await supabase.storage
         .from('liquidation-docs')
