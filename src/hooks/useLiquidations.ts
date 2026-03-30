@@ -165,7 +165,7 @@ export async function calculateLiquidationItems(
     const qty = m.type === 'venta' ? m.quantity : -m.quantity;
     const entry = bookMap.get(m.book_id) ?? { dist: 0, online: 0, school: 0 };
     if (code === 'maidhisa' || code === 'azeta') entry.dist += qty;
-    else if (code === 'almacen') entry.online += qty;
+    else if (code === 'almacen' || code === 'online') entry.online += qty;
     else if (code === 'colegios') entry.school += qty;
     bookMap.set(m.book_id, entry);
   }
