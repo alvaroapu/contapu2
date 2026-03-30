@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, FileSpreadsheet, FileText, CheckCircle, RefreshCw, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, FileSpreadsheet, FileText, CheckCircle, RefreshCw, Trash2, Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import { downloadAuthorDOCX, generateAuthorDOCX } from '@/components/liquidacion
 import { exportLiquidationExcel } from '@/components/liquidaciones/LiquidacionExcel';
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
+import { SendEmailsDialog } from '@/components/liquidaciones/SendEmailsDialog';
 
 export default function LiquidacionDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,8 @@ export default function LiquidacionDetalle() {
   const updateItem = useUpdateLiquidationItem();
   const [confirmAction, setConfirmAction] = useState<'finalize' | 'recalculate' | 'delete' | null>(null);
   const [genAllLoading, setGenAllLoading] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailItems, setEmailItems] = useState<LiquidationItem[]>([]);
 
   const totalAuthors = items?.[0]?.total_authors ?? 0;
   const isDraft = liq?.status === 'draft';
@@ -186,6 +189,13 @@ export default function LiquidacionDetalle() {
           <Button variant="outline" size="sm" onClick={handleGenerateAllDOCX} disabled={genAllLoading}>
             {genAllLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
             Todos los informes
+          </Button>
+          <Button variant="outline" size="sm" onClick={async () => {
+            const items = await fetchAllLiquidationItems(liq.id);
+            setEmailItems(items);
+            setEmailDialogOpen(true);
+          }}>
+            <Mail className="mr-1 h-4 w-4" /> Enviar emails
           </Button>
         </div>
       </div>
@@ -387,6 +397,15 @@ export default function LiquidacionDetalle() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {liq && (
+        <SendEmailsDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          liquidation={liq}
+          allItems={emailItems}
+        />
+      )}
     </div>
   );
 }
