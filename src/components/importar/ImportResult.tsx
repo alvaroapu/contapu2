@@ -219,7 +219,19 @@ export function ImportResultView({ data, onBack }: Props) {
       {/* Unmatched */}
       {unmatchedEntries.length > 0 && (
         <div>
-          <h2 className="mb-2 text-lg font-semibold">Libros no encontrados ({pendingCount} pendientes)</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold">Libros no encontrados ({pendingCount} pendientes)</h2>
+            {pendingCount > 0 && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={createAllPending} disabled={bulkProcessing}>
+                  {bulkProcessing ? 'Creando…' : `Crear todos (${pendingCount})`}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={ignoreAllPending} disabled={bulkProcessing}>
+                  Ignorar todos
+                </Button>
+              </div>
+            )}
+          </div>
           <div className="rounded border overflow-auto">
             <Table>
               <TableHeader>
