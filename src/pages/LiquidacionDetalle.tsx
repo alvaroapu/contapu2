@@ -84,6 +84,7 @@ export default function LiquidacionDetalle() {
       });
       qc.invalidateQueries({ queryKey: ['liquidation-items'] });
       qc.invalidateQueries({ queryKey: ['liquidation-authors'] });
+      qc.invalidateQueries({ queryKey: ['liquidation-totals'] });
       toast.success('Liquidación recalculada');
     } catch (e: any) {
       toast.error(e.message);
