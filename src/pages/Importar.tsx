@@ -101,7 +101,7 @@ export default function Importar() {
       if (allRows.length === 0) { toast.error('No se encontraron registros válidos'); setProcessing(false); return; }
       setProgress(30);
 
-      const matchResult = distCode === 'azeta' ? await matchAzeta(allRows) : await matchMaidhisa(allRows);
+      const matchResult = distCode === 'azeta' ? await matchAzeta(allRows) : distCode === 'online' ? await matchOnline(allRows) : await matchMaidhisa(allRows);
       setProgress(50);
 
       const { data: user } = await supabase.auth.getUser();
