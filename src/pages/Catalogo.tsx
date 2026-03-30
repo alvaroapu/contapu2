@@ -124,6 +124,9 @@ export default function Catalogo() {
           <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
             <Merge className="mr-2 h-4 w-4" /> Fusionar
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setAutoMergeOpen(true)}>
+            <Merge className="mr-2 h-4 w-4" /> Auto-fusionar ISBN
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
