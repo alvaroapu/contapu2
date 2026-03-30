@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ImportResultView, ImportResultData } from '@/components/importar/ImportResult';
-import { parseAzetaFile, parseMaidhisaFile, matchAzeta, matchMaidhisa } from '@/lib/importProcessors';
+import { parseAzetaFile, parseMaidhisaFile, parseOnlineFile, matchAzeta, matchMaidhisa, matchOnline } from '@/lib/importProcessors';
 import { MONTHS, getYears } from '@/lib/constants';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
