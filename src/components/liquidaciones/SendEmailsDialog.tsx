@@ -158,6 +158,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
           subject: resolveText(subject, authorData.author),
           introText: resolveText(introText, authorData.author),
           outroText: resolveText(outroText, authorData.author),
+          ...(fromEmail.trim() ? { fromEmail: fromEmail.trim() } : {}),
         },
       });
 
