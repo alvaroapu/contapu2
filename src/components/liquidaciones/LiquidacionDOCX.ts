@@ -31,20 +31,19 @@ function buildBoxContent(
     `<w:r><w:rPr><w:b/><w:u w:val="single"/></w:rPr><w:t>Informe de ventas ${year}:</w:t></w:r></w:p>`;
 
   // "- Nombre autor/a: [author]"
-  xml += `<w:p><w:pPr><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr>` +
-    `<w:r><w:t xml:space="preserve">- Nombre autor/a: </w:t></w:r>` +
-    `<w:r><w:t>${escapeXml(author)}</w:t></w:r></w:p>`;
+  xml += `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr>` +
+    `<w:r><w:t xml:space="preserve">- Nombre autor/a: ${escapeXml(author)}</w:t></w:r></w:p>`;
 
   // Empty line
-  xml += `<w:p><w:pPr><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr></w:p>`;
+  xml += `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr></w:p>`;
 
   for (const item of authorItems) {
     // "- Título: [title]"
-    xml += `<w:p><w:pPr><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr>` +
+    xml += `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr>` +
       `<w:r><w:t xml:space="preserve">- Título: ${escapeXml(item.book_title)}</w:t></w:r></w:p>`;
 
     // Empty line
-    xml += `<w:p><w:pPr><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr></w:p>`;
+    xml += `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr></w:p>`;
 
     // Distributor sales
     xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108" w:firstLine="708"/><w:jc w:val="both"/></w:pPr>` +
@@ -61,7 +60,7 @@ function buildBoxContent(
 
   // TOTAL line
   const total = authorItems.reduce((s, i) => s + i.total_amount, 0);
-  xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr>` +
+  xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/><w:rPr><w:b/><w:u w:val="single"/></w:rPr></w:pPr>` +
     `<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">TOTAL: </w:t></w:r>` +
     `<w:r><w:rPr><w:i/></w:rPr><w:t>${formatEur(total)}</w:t></w:r></w:p>`;
 
