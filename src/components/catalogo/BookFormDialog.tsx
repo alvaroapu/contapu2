@@ -44,6 +44,7 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
         publication_date: book.publication_date ?? '',
         status: book.status,
         maidhisa_ref: book.maidhisa_ref ?? '',
+        author_email: book.author_email ?? '',
       });
       setAuthorSearch(book.author);
     } else {
