@@ -294,6 +294,7 @@ export default function Catalogo() {
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
+      <MergeBookDialog open={mergeOpen} onOpenChange={(v) => { setMergeOpen(v); if (!v) setSelectedIds(new Set()); }} preselectedIds={[...selectedIds]} />
 
       <AlertDialog open={!!deleteBookId} onOpenChange={(v) => { if (!v) setDeleteBookId(null); }}>
         <AlertDialogContent>
