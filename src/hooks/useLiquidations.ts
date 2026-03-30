@@ -311,6 +311,7 @@ export function useUpdateLiquidationItem() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['liquidation-items'] });
+      qc.invalidateQueries({ queryKey: ['liquidation-totals'] });
       toast.success('Actualizado');
     },
     onError: (e: any) => toast.error(e.message),
