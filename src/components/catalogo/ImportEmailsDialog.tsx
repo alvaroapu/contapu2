@@ -146,8 +146,8 @@ export function ImportEmailsDialog({ open, onOpenChange }: Props) {
   };
 
   const downloadTemplate = () => {
-    const ws = XLSX.utils.aoa_to_sheet([['Título', 'Email']]);
-    ws['!cols'] = [{ wch: 40 }, { wch: 30 }];
+    const ws = XLSX.utils.aoa_to_sheet([['Título', 'Autor', 'Email']]);
+    ws['!cols'] = [{ wch: 40 }, { wch: 25 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Emails');
     XLSX.writeFile(wb, 'Plantilla_Emails.xlsx');
