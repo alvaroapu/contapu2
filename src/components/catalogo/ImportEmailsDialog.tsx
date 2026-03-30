@@ -188,19 +188,21 @@ export function ImportEmailsDialog({ open, onOpenChange }: Props) {
             <div className="rounded-md border max-h-[40vh] overflow-y-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Título (archivo)</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row, i) => (
-                    <TableRow key={i} className={!row.matched ? 'bg-red-50' : ''}>
-                      <TableCell className="text-sm max-w-[250px] truncate" title={row.matched ? `→ ${row.currentTitle}` : undefined}>
-                        {row.title}
-                      </TableCell>
-                      <TableCell className="text-sm">{row.email}</TableCell>
+                   <TableRow>
+                     <TableHead>Título (archivo)</TableHead>
+                     <TableHead>Autor</TableHead>
+                     <TableHead>Email</TableHead>
+                     <TableHead>Estado</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {rows.map((row, i) => (
+                     <TableRow key={i} className={!row.matched ? 'bg-red-50' : ''}>
+                       <TableCell className="text-sm max-w-[200px] truncate" title={row.matched ? `→ ${row.currentTitle}` : undefined}>
+                         {row.title}
+                       </TableCell>
+                       <TableCell className="text-sm max-w-[150px] truncate">{row.author}</TableCell>
+                       <TableCell className="text-sm">{row.email}</TableCell>
                       <TableCell>
                         <Badge variant={row.matched ? 'default' : 'destructive'}>
                           {row.matched ? 'OK' : 'No encontrado'}
