@@ -36,7 +36,7 @@ export default function LiquidacionDetalle() {
   const { data: liq, isLoading: liqLoading } = useLiquidation(id!);
   const [search, setSearch] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
-  const [onlyWithSales, setOnlyWithSales] = useState(true);
+  const [onlyWithSales, setOnlyWithSales] = useState(false);
   const [page, setPage] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
   const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page);
