@@ -1,0 +1,1 @@
+INSERT INTO public.distributors (code, name, is_active) VALUES ('online', 'Venta Online', true) ON CONFLICT DO NOTHING;
