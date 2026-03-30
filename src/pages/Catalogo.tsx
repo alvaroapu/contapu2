@@ -132,6 +132,9 @@ export default function Catalogo() {
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportEmailsOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" /> Importar emails
+          </Button>
           <Button variant="destructive" size="sm" onClick={() => setDeleteAllOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" /> Eliminar todo
           </Button>
