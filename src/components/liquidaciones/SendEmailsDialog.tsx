@@ -46,6 +46,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [subject, setSubject] = useState('');
   const [introText, setIntroText] = useState('');
   const [outroText, setOutroText] = useState('');
+  const [fromEmail, setFromEmail] = useState('');
   const [activeTab, setActiveTab] = useState('message');
 
   useEffect(() => {
