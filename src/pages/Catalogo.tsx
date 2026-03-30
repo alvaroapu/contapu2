@@ -105,9 +105,16 @@ export default function Catalogo() {
         <h1 className="text-2xl font-bold">Catálogo de Libros</h1>
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
-            <Button variant="destructive" size="sm" onClick={() => setDeleteBulkOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedIds.size})
-            </Button>
+            <>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteBulkOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedIds.size})
+              </Button>
+              {selectedIds.size === 2 && (
+                <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
+                  <Merge className="mr-2 h-4 w-4" /> Fusionar
+                </Button>
+              )}
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => exportCatalog.mutate()} disabled={exportCatalog.isPending}>
             <Download className="mr-2 h-4 w-4" /> {exportCatalog.isPending ? 'Exportando…' : 'Exportar'}
