@@ -161,7 +161,7 @@ export function ImportEmailsDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">
-          Sube un Excel con columnas <strong>Título</strong> y <strong>Email</strong>. Solo se actualizará el email de los libros que coincidan por título.
+          Sube un Excel con columnas <strong>Título</strong>, <strong>Autor</strong> (opcional) y <strong>Email</strong>. El autor ayuda a desambiguar cuando el título no coincide exactamente.
         </p>
 
         <div className="flex gap-2">
