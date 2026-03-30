@@ -255,6 +255,9 @@ export function ImportResultView({ data, onBack }: Props) {
                               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setAssigningIdx(idx); setBookSearch(''); }}>
                                 Asignar
                               </Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => createAndAssign(idx)}>
+                                Crear
+                              </Button>
                               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => ignoreEntry(idx)}>
                                 Ignorar
                               </Button>
