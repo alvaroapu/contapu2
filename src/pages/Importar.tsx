@@ -92,7 +92,7 @@ export default function Importar() {
       for (let fi = 0; fi < files.length; fi++) {
         const buf = await files[fi].arrayBuffer();
         const wb = XLSX.read(buf);
-        const rows = distCode === 'azeta' ? parseAzetaFile(wb) : parseMaidhisaFile(wb);
+        const rows = distCode === 'azeta' ? parseAzetaFile(wb) : distCode === 'online' ? parseOnlineFile(wb) : parseMaidhisaFile(wb);
         allRows.push(...rows);
         fileNames.push(files[fi].name);
         setProgress(10 + Math.round(((fi + 1) / files.length) * 15));
