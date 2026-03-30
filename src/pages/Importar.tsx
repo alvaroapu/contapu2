@@ -51,7 +51,7 @@ export default function Importar() {
     },
   });
 
-  const importableDists = distributors.filter(d => d.code === 'azeta' || d.code === 'maidhisa');
+  const importableDists = distributors.filter(d => d.code === 'azeta' || d.code === 'maidhisa' || d.code === 'online');
 
   async function handleProcess() {
     if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return; }
