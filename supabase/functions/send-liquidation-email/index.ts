@@ -30,7 +30,8 @@ Deno.serve(async (req) => {
     }
 
     const authToken = Deno.env.get("ACUMBAMAIL_AUTH_TOKEN");
-    const fromEmail = Deno.env.get("ACUMBAMAIL_FROM_EMAIL");
+    const defaultFromEmail = Deno.env.get("ACUMBAMAIL_FROM_EMAIL");
+    const fromEmail = customFromEmail || defaultFromEmail;
 
     if (!authToken || !fromEmail) {
       return new Response(

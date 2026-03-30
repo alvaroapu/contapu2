@@ -209,14 +209,30 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
             </TabsList>
 
             <TabsContent value="message" className="space-y-4 mt-4">
-              <div>
-                <Label htmlFor="subject" className="text-sm font-medium">Asunto</Label>
-                <Input
-                  id="subject"
-                  value={subject}
-                  onChange={e => setSubject(e.target.value)}
-                  className="mt-1"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="from-email" className="text-sm font-medium">
+                    Email remitente
+                    <span className="text-muted-foreground font-normal ml-2">(vacío = predeterminado)</span>
+                  </Label>
+                  <Input
+                    id="from-email"
+                    type="email"
+                    placeholder="noreply@tudominio.com"
+                    value={fromEmail}
+                    onChange={e => setFromEmail(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="subject" className="text-sm font-medium">Asunto</Label>
+                  <Input
+                    id="subject"
+                    value={subject}
+                    onChange={e => setSubject(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               <div>
