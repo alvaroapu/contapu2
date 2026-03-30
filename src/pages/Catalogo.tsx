@@ -39,6 +39,7 @@ export default function Catalogo() {
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
   const deleteBook = useDeleteBook();
