@@ -41,6 +41,7 @@ export default function LiquidacionDetalle() {
   const debouncedSearch = useDebounce(search, 300);
   const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page);
   const { data: authors } = useLiquidationAuthors(id!);
+  const { data: globalTotals } = useLiquidationTotals(id!);
   const finalize = useFinalizeLiquidation();
   const deleteMut = useDeleteLiquidation();
   const updateItem = useUpdateLiquidationItem();
