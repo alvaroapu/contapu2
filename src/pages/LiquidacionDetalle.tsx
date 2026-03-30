@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { EditableCell } from '@/components/ventas/EditableCell';
 import {
-  useLiquidation, useLiquidationItems, useLiquidationAuthors,
+  useLiquidation, useLiquidationItems, useLiquidationAuthors, useLiquidationTotals,
   useFinalizeLiquidation, useDeleteLiquidation, useUpdateLiquidationItem,
   calculateLiquidationItems,
   type LiquidationItem,
@@ -36,11 +36,12 @@ export default function LiquidacionDetalle() {
   const { data: liq, isLoading: liqLoading } = useLiquidation(id!);
   const [search, setSearch] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
-  const [onlyWithSales, setOnlyWithSales] = useState(true);
+  const [onlyWithSales, setOnlyWithSales] = useState(false);
   const [page, setPage] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
   const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page);
   const { data: authors } = useLiquidationAuthors(id!);
+  const { data: globalTotals } = useLiquidationTotals(id!);
   const finalize = useFinalizeLiquidation();
   const deleteMut = useDeleteLiquidation();
   const updateItem = useUpdateLiquidationItem();
@@ -64,15 +65,13 @@ export default function LiquidacionDetalle() {
 
   // Summary
   const summary = useMemo(() => {
-    if (!items) return { authors: 0, books: 0, units: 0, total: 0 };
-    
     return {
-      authors: Number(totalAuthors),
-      books: items.length,
-      units: items.reduce((s, i) => s + i.distributor_units + i.online_units + i.school_units, 0),
-      total: items.reduce((s, i) => s + i.total_amount, 0),
+      authors: globalTotals?.authors ?? 0,
+      books: globalTotals?.books ?? 0,
+      units: globalTotals?.units ?? 0,
+      total: globalTotals?.totalPositive ?? 0,
     };
-  }, [items, totalAuthors]);
+  }, [globalTotals]);
 
   const handleRecalculate = async () => {
     if (!liq) return;
@@ -85,6 +84,7 @@ export default function LiquidacionDetalle() {
       });
       qc.invalidateQueries({ queryKey: ['liquidation-items'] });
       qc.invalidateQueries({ queryKey: ['liquidation-authors'] });
+      qc.invalidateQueries({ queryKey: ['liquidation-totals'] });
       toast.success('Liquidación recalculada');
     } catch (e: any) {
       toast.error(e.message);
@@ -276,7 +276,7 @@ export default function LiquidacionDetalle() {
                 return (
                   <>
                     {books.map((item, idx) => (
-                      <TableRow key={item.item_id}>
+                      <TableRow key={item.item_id} className={item.total_amount < 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}>
                         <TableCell className="font-medium">{idx === 0 ? author : ''}</TableCell>
                         <TableCell>{item.book_title}</TableCell>
                         <TableCell>{formatDate(item.publication_date)}</TableCell>
@@ -399,7 +399,7 @@ async function fetchAllLiquidationItems(liquidationId: string): Promise<Liquidat
       p_liquidation_id: liquidationId,
       p_search: '',
       p_author_filter: '',
-      p_only_with_sales: true,
+      p_only_with_sales: false,
       p_limit: 500,
       p_offset: offset,
     });

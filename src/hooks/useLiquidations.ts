@@ -85,6 +85,27 @@ export function useLiquidationItems(
   });
 }
 
+export function useLiquidationTotals(liquidationId: string) {
+  return useQuery({
+    queryKey: ['liquidation-totals', liquidationId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_liquidation_totals', {
+        p_liquidation_id: liquidationId,
+      });
+      if (error) throw error;
+      const row = data?.[0];
+      return {
+        authors: Number(row?.total_authors ?? 0),
+        books: Number(row?.total_books ?? 0),
+        units: Number(row?.total_units ?? 0),
+        totalPositive: Number(row?.total_positive_amount ?? 0),
+        totalAll: Number(row?.total_all_amount ?? 0),
+      };
+    },
+    enabled: !!liquidationId,
+  });
+}
+
 export function useLiquidationAuthors(liquidationId: string) {
   return useQuery({
     queryKey: ['liquidation-authors', liquidationId],
@@ -170,21 +191,33 @@ export async function calculateLiquidationItems(
     bookMap.set(m.book_id, entry);
   }
 
-  // Fetch book PVPs
-  const bookIds = [...bookMap.keys()];
-  if (bookIds.length === 0) return;
-
+  // Fetch ALL active books to include those with 0 sales
   const pvpMap = new Map<string, number>();
-  for (let i = 0; i < bookIds.length; i += 50) {
-    const chunk = bookIds.slice(i, i + 50);
-    const { data } = await supabase.from('books').select('id, pvp').in('id', chunk);
-    for (const b of data ?? []) pvpMap.set(b.id, Number(b.pvp));
+  let allBooksFrom = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('books')
+      .select('id, pvp')
+      .eq('status', 'active')
+      .range(allBooksFrom, allBooksFrom + 999);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    for (const b of data) {
+      pvpMap.set(b.id, Number(b.pvp));
+      if (!bookMap.has(b.id)) {
+        bookMap.set(b.id, { dist: 0, online: 0, school: 0 });
+      }
+    }
+    if (data.length < 1000) break;
+    allBooksFrom += 1000;
   }
+
+  if (bookMap.size === 0) return;
 
   // Build items
   const items: any[] = [];
   for (const [bookId, units] of bookMap) {
-    if (units.dist === 0 && units.online === 0 && units.school === 0) continue;
+    // Include all books, even with 0 sales
     const pvp = pvpMap.get(bookId) ?? 0;
     const dAmt = units.dist * pvp * (params.distributor_royalty_pct / 100);
     const oAmt = units.online * pvp * (params.online_royalty_pct / 100);
@@ -278,6 +311,7 @@ export function useUpdateLiquidationItem() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['liquidation-items'] });
+      qc.invalidateQueries({ queryKey: ['liquidation-totals'] });
       toast.success('Actualizado');
     },
     onError: (e: any) => toast.error(e.message),

@@ -369,6 +369,16 @@ export type Database = {
           total_authors: number
         }[]
       }
+      get_liquidation_totals: {
+        Args: { p_liquidation_id: string }
+        Returns: {
+          total_all_amount: number
+          total_authors: number
+          total_books: number
+          total_positive_amount: number
+          total_units: number
+        }[]
+      }
       get_monthly_sales_summary: {
         Args: { p_year: number }
         Returns: {
