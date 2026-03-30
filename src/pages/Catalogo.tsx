@@ -8,8 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { BookFormDialog } from '@/components/catalogo/BookFormDialog';
 import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
+import { MergeBookDialog } from '@/components/catalogo/MergeBookDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
-import { Plus, Upload, ArrowUpDown, Download, Trash2 } from 'lucide-react';
+import { Plus, Upload, ArrowUpDown, Download, Trash2, Merge } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDeleteAllBooks, useDeleteBook, useDeleteBooks, useExportCatalog } from '@/hooks/useBooks';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,6 +39,7 @@ export default function Catalogo() {
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
   const deleteBook = useDeleteBook();
@@ -103,12 +105,22 @@ export default function Catalogo() {
         <h1 className="text-2xl font-bold">Catálogo de Libros</h1>
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
-            <Button variant="destructive" size="sm" onClick={() => setDeleteBulkOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedIds.size})
-            </Button>
+            <>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteBulkOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" /> Eliminar ({selectedIds.size})
+              </Button>
+              {selectedIds.size === 2 && (
+                <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
+                  <Merge className="mr-2 h-4 w-4" /> Fusionar
+                </Button>
+              )}
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => exportCatalog.mutate()} disabled={exportCatalog.isPending}>
             <Download className="mr-2 h-4 w-4" /> {exportCatalog.isPending ? 'Exportando…' : 'Exportar'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
+            <Merge className="mr-2 h-4 w-4" /> Fusionar
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
@@ -282,6 +294,7 @@ export default function Catalogo() {
 
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
+      <MergeBookDialog open={mergeOpen} onOpenChange={(v) => { setMergeOpen(v); if (!v) setSelectedIds(new Set()); }} preselectedIds={[...selectedIds]} />
 
       <AlertDialog open={!!deleteBookId} onOpenChange={(v) => { if (!v) setDeleteBookId(null); }}>
         <AlertDialogContent>
