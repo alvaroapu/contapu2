@@ -220,11 +220,11 @@ export default function Importar() {
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Archivo (.xlsx, .xls)</Label>
-            <input type="file" accept=".xlsx,.xls" onChange={e => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
+            <Label>Archivos (.xlsx, .xls)</Label>
+            <input type="file" accept=".xlsx,.xls" multiple onChange={e => setFiles(Array.from(e.target.files ?? []))} className="text-sm" />
           </div>
           {processing && <Progress value={progress} className="h-2" />}
-          <Button onClick={handleProcess} disabled={!file || processing}>
+          <Button onClick={handleProcess} disabled={files.length === 0 || processing}>
             <Upload className="mr-2 h-4 w-4" />
             {processing ? `Procesando… ${progress}%` : 'Procesar'}
           </Button>
