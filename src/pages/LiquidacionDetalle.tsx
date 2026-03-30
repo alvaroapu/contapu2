@@ -397,6 +397,15 @@ export default function LiquidacionDetalle() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {liq && (
+        <SendEmailsDialog
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+          liquidation={liq}
+          allItems={emailItems}
+        />
+      )}
     </div>
   );
 }
