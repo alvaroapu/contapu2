@@ -49,6 +49,7 @@ export function ImportEmailsDialog({ open, onOpenChange }: Props) {
 
       const headers = raw[0].map((h: any) => normalizeText(String(h ?? '')));
       const cTitle = headers.findIndex(h => h.includes('titulo') || h.includes('title') || h.includes('obra'));
+      const cAuthor = headers.findIndex(h => h.includes('autor') || h.includes('author'));
       const cEmail = headers.findIndex(h => h.includes('email') || h.includes('correo') || h.includes('mail'));
 
       if (cTitle < 0 || cEmail < 0) {
@@ -61,7 +62,7 @@ export function ImportEmailsDialog({ open, onOpenChange }: Props) {
       let allBooks: any[] = [];
       let from = 0;
       while (true) {
-        const { data } = await supabase.from('books').select('id, title').range(from, from + 999);
+        const { data } = await supabase.from('books').select('id, title, author').range(from, from + 999);
         if (!data || data.length === 0) break;
         allBooks.push(...data);
         if (data.length < 1000) break;
@@ -73,25 +74,42 @@ export function ImportEmailsDialog({ open, onOpenChange }: Props) {
         const r = raw[i];
         if (!r) continue;
         const title = r[cTitle] ? String(r[cTitle]).trim() : '';
+        const author = cAuthor >= 0 && r[cAuthor] ? String(r[cAuthor]).trim() : '';
         const email = r[cEmail] ? String(r[cEmail]).trim() : '';
         if (!title || !email) continue;
 
         const normTitle = normalizeText(title);
+        const normAuthor = author ? normalizeText(author) : '';
         const match = allBooks.find(b => normalizeText(b.title) === normTitle);
 
-        if (!match) {
-          // Try partial match
-          const partial = allBooks.filter(b => {
+        if (match) {
+          parsed.push({ title, author, email, matched: true, bookId: match.id, currentTitle: match.title });
+        } else {
+          // Try partial title match
+          let candidates = allBooks.filter(b => {
             const nb = normalizeText(b.title);
             return nb.includes(normTitle) || normTitle.includes(nb);
           });
-          if (partial.length === 1) {
-            parsed.push({ title, email, matched: true, bookId: partial[0].id, currentTitle: partial[0].title });
-          } else {
-            parsed.push({ title, email, matched: false });
+          // If author provided, filter by author to narrow down
+          if (normAuthor && candidates.length !== 1) {
+            const byAuthor = candidates.filter(b => normalizeText(b.author) === normAuthor);
+            if (byAuthor.length > 0) candidates = byAuthor;
           }
-        } else {
-          parsed.push({ title, email, matched: true, bookId: match.id, currentTitle: match.title });
+          // If still no match by title, try matching by author alone when there's only one book by that author
+          if (candidates.length === 0 && normAuthor) {
+            const authorBooks = allBooks.filter(b => normalizeText(b.author) === normAuthor);
+            // Try partial title within author's books
+            const partial = authorBooks.filter(b => {
+              const nb = normalizeText(b.title);
+              return nb.includes(normTitle) || normTitle.includes(nb);
+            });
+            if (partial.length === 1) candidates = partial;
+          }
+          if (candidates.length === 1) {
+            parsed.push({ title, author, email, matched: true, bookId: candidates[0].id, currentTitle: candidates[0].title });
+          } else {
+            parsed.push({ title, author, email, matched: false });
+          }
         }
       }
 
