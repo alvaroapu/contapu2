@@ -17,6 +17,7 @@ interface Props {
 
 interface EmailRow {
   title: string;
+  author: string;
   email: string;
   matched: boolean;
   bookId?: string;
