@@ -119,7 +119,34 @@ export function ImportResultView({ data, onBack }: Props) {
     } as any).eq('id', data.batch.id);
   }
 
-  async function revertBatch() {
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  async function createAllPending() {
+    setBulkProcessing(true);
+    let created = 0;
+    try {
+      for (let idx = 0; idx < unmatchedEntries.length; idx++) {
+        if (unmatchedEntries[idx].status !== 'pending') continue;
+        await createAndAssign(idx);
+        created++;
+      }
+      toast.success(`${created} libros creados y asignados`);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Error en creación masiva');
+    } finally {
+      setBulkProcessing(false);
+    }
+  }
+
+  function ignoreAllPending() {
+    const updated = unmatchedEntries.map(e => e.status === 'pending' ? { ...e, status: 'ignored' as const } : e);
+    setUnmatchedEntries(updated);
+    supabase.from('import_batches').update({
+      records_skipped: updated.filter(e => e.status !== 'assigned').length,
+      error_log: { unmatched: updated },
+    } as any).eq('id', data.batch.id);
+    toast.success('Todos los pendientes ignorados');
+  }
     await supabase.from('sales_movements').delete().eq('import_batch_id', data.batch.id);
     await supabase.from('import_batches').update({ status: 'reverted' } as any).eq('id', data.batch.id);
     toast.success('Importación revertida');
