@@ -309,7 +309,7 @@ export default function Importar() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowOverwrite(false); processFile(existingBatch?.id); }}>
+            <AlertDialogAction onClick={() => { setShowOverwrite(false); processFiles(existingBatch?.id); }}>
               Revertir y reimportar
             </AlertDialogAction>
           </AlertDialogFooter>
