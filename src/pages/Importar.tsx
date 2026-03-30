@@ -30,7 +30,7 @@ export default function Importar() {
   const [distCode, setDistCode] = useState('azeta');
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState(1);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
 
