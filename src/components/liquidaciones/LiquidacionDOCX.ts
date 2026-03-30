@@ -81,20 +81,28 @@ function buildDocumentBody(
   // Table cell with blue background containing the sales box
   const tableCell = `<w:tc>` +
     `<w:tcPr>` +
-    `<w:cnfStyle w:val="000010000000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="1" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/>` +
     `<w:tcW w:w="8738" w:type="dxa"/>` +
-    `<w:shd w:val="clear" w:color="auto" w:fill="C6D9F1" w:themeFill="text2" w:themeFillTint="33"/>` +
+    `<w:shd w:val="clear" w:color="auto" w:fill="C6D9F0" w:themeFill="text2" w:themeFillTint="33"/>` +
     `</w:tcPr>` +
     buildBoxContent(author, authorItems, liq) +
     `</w:tc>`;
 
   const tableRow = `<w:tr>` +
-    `<w:trPr><w:cnfStyle w:val="000000100000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:oddVBand="0" w:evenVBand="0" w:oddHBand="1" w:evenHBand="0" w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0" w:lastRowLastColumn="0"/></w:trPr>` +
+    `<w:trPr><w:trHeight w:val="3305" w:hRule="atLeast"/></w:trPr>` +
     tableCell +
     `</w:tr>`;
 
+  const tableBorders = `<w:tblBorders>` +
+    `<w:top w:val="single" w:color="7BA0CD" w:themeColor="accent1" w:themeTint="BF" w:sz="8" w:space="0"/>` +
+    `<w:left w:val="single" w:color="7BA0CD" w:themeColor="accent1" w:themeTint="BF" w:sz="8" w:space="0"/>` +
+    `<w:bottom w:val="single" w:color="7BA0CD" w:themeColor="accent1" w:themeTint="BF" w:sz="8" w:space="0"/>` +
+    `<w:right w:val="single" w:color="7BA0CD" w:themeColor="accent1" w:themeTint="BF" w:sz="8" w:space="0"/>` +
+    `<w:insideH w:val="single" w:color="7BA0CD" w:themeColor="accent1" w:themeTint="BF" w:sz="8" w:space="0"/>` +
+    `<w:insideV w:val="single" w:color="7BA0CD" w:themeColor="accent1" w:themeTint="BF" w:sz="8" w:space="0"/>` +
+    `</w:tblBorders>`;
+
   const table = `<w:tbl>` +
-    `<w:tblPr><w:tblStyle w:val="Cuadrculamedia1-nfasis1"/><w:tblW w:w="8738" w:type="dxa"/><w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0"/></w:tblPr>` +
+    `<w:tblPr><w:tblStyle w:val="10"/><w:tblW w:w="8738" w:type="dxa"/><w:tblInd w:w="0" w:type="dxa"/>${tableBorders}<w:tblLayout w:type="autofit"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr>` +
     `<w:tblGrid><w:gridCol w:w="8738"/></w:tblGrid>` +
     tableRow +
     `</w:tbl>`;
