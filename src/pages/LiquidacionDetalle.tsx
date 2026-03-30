@@ -28,6 +28,7 @@ import { downloadAuthorDOCX, generateAuthorDOCX } from '@/components/liquidacion
 import { exportLiquidationExcel } from '@/components/liquidaciones/LiquidacionExcel';
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
+import { SendEmailsDialog } from '@/components/liquidaciones/SendEmailsDialog';
 
 export default function LiquidacionDetalle() {
   const { id } = useParams<{ id: string }>();
