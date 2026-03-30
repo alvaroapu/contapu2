@@ -48,6 +48,8 @@ export default function LiquidacionDetalle() {
   const updateItem = useUpdateLiquidationItem();
   const [confirmAction, setConfirmAction] = useState<'finalize' | 'recalculate' | 'delete' | null>(null);
   const [genAllLoading, setGenAllLoading] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailItems, setEmailItems] = useState<LiquidationItem[]>([]);
 
   const totalAuthors = items?.[0]?.total_authors ?? 0;
   const isDraft = liq?.status === 'draft';
