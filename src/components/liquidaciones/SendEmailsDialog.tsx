@@ -151,17 +151,14 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const handleSendAll = async () => {
     setSending(true);
-    const withEmail = authors.filter(a => a.email && a.status !== 'sent');
     for (let i = 0; i < authors.length; i++) {
       const a = authors[i];
       if (!a.email || a.status === 'sent') continue;
       await sendEmail(a, i);
-      // Small delay between sends
       await new Promise(r => setTimeout(r, 500));
     }
     setSending(false);
-    const sent = authors.filter(a => a.email).length;
-    toast.success(`Proceso completado`);
+    toast.success('Proceso completado');
   };
 
   const withEmail = authors.filter(a => a.email);
