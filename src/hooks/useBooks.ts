@@ -13,6 +13,7 @@ export interface Book {
   publication_date: string | null;
   status: string;
   maidhisa_ref: string | null;
+  author_email: string | null;
   created_at: string;
   updated_at: string;
 }
