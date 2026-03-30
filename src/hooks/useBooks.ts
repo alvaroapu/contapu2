@@ -13,6 +13,7 @@ export interface Book {
   publication_date: string | null;
   status: string;
   maidhisa_ref: string | null;
+  author_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -229,6 +230,7 @@ export function useExportCatalog() {
         'Fecha publicación': b.publication_date ?? '',
         Estado: b.status,
         'Ref. Maidhisa': b.maidhisa_ref ?? '',
+        'Email autor': b.author_email ?? '',
       }));
 
       const ws = XLSX.utils.json_to_sheet(rows);

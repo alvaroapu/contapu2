@@ -10,8 +10,9 @@ import { BookFormDialog } from '@/components/catalogo/BookFormDialog';
 import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { MergeBookDialog } from '@/components/catalogo/MergeBookDialog';
 import { AutoMergeDialog } from '@/components/catalogo/AutoMergeDialog';
+import { ImportEmailsDialog } from '@/components/catalogo/ImportEmailsDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
-import { Plus, Upload, ArrowUpDown, Download, Trash2, Merge } from 'lucide-react';
+import { Plus, Upload, ArrowUpDown, Download, Trash2, Merge, Mail } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDeleteAllBooks, useDeleteBook, useDeleteBooks, useExportCatalog } from '@/hooks/useBooks';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,6 +43,7 @@ export default function Catalogo() {
   const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [autoMergeOpen, setAutoMergeOpen] = useState(false);
+  const [importEmailsOpen, setImportEmailsOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
   const deleteBook = useDeleteBook();
@@ -129,6 +131,9 @@ export default function Catalogo() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportEmailsOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" /> Importar emails
           </Button>
           <Button variant="destructive" size="sm" onClick={() => setDeleteAllOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" /> Eliminar todo
@@ -301,6 +306,7 @@ export default function Catalogo() {
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
       <MergeBookDialog open={mergeOpen} onOpenChange={(v) => { setMergeOpen(v); if (!v) setSelectedIds(new Set()); }} preselectedIds={[...selectedIds]} />
       <AutoMergeDialog open={autoMergeOpen} onOpenChange={setAutoMergeOpen} />
+      <ImportEmailsDialog open={importEmailsOpen} onOpenChange={setImportEmailsOpen} />
 
       <AlertDialog open={!!deleteBookId} onOpenChange={(v) => { if (!v) setDeleteBookId(null); }}>
         <AlertDialogContent>

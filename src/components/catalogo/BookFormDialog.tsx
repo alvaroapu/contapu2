@@ -23,6 +23,7 @@ const emptyForm = {
   publication_date: '',
   status: 'active',
   maidhisa_ref: '',
+  author_email: '',
 };
 
 export function BookFormDialog({ open, onOpenChange, book }: Props) {
@@ -43,6 +44,7 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
         publication_date: book.publication_date ?? '',
         status: book.status,
         maidhisa_ref: book.maidhisa_ref ?? '',
+        author_email: book.author_email ?? '',
       });
       setAuthorSearch(book.author);
     } else {
@@ -78,6 +80,7 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
         publication_date: form.publication_date || null,
         status: form.status,
         maidhisa_ref: form.maidhisa_ref || null,
+        author_email: form.author_email || null,
       },
       { onSuccess: () => onOpenChange(false) }
     );
@@ -165,6 +168,10 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
               <Label>Ref. Maidhisa</Label>
               <Input value={form.maidhisa_ref} onChange={(e) => setForm({ ...form, maidhisa_ref: e.target.value })} />
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Email autor</Label>
+            <Input type="email" value={form.author_email} onChange={(e) => setForm({ ...form, author_email: e.target.value })} placeholder="autor@ejemplo.com" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
