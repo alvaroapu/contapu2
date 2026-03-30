@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,19 +33,31 @@ function formatEur(val: number): string {
   return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' €';
 }
 
+const DEFAULT_INTRO = (year: number) =>
+  `Estimado/a {autor},\n\nLe enviamos el informe de liquidación correspondiente al año ${year}.\n\nEs importante tener en cuenta la operativa de ventas en librerías a través de distribuidoras, por lo que pasamos a detallarla:\n\n1. Las distribuidoras cuentan con un depósito de ejemplares que desde la editorial les hacemos llegar.\n2. Las distribuidoras mandan ejemplares en depósito a librerías y a grandes superficies; el depósito dura de 3 a 6 meses, por lo que hasta transcurridos estos plazos, las distribuidoras desconocen las ventas de los libros.`;
+
+const DEFAULT_OUTRO = () =>
+  `Para que la editorial pueda realizar el pago, lo más conveniente, para agilizar el proceso de cobro, es que como autor/a realice una factura por PayPal a icidre@apuleyoediciones.com. IMPORTANTE QUE SEA FACTURA Y NO UNA PETICIÓN DE PAGO.\n\nRecomendamos la primera opción, para evitar trámites.\n\nOs facilitamos un vídeo para usarlo como guía en caso de tener ciertas dificultades con la factura:\nhttps://youtu.be/eVC-zxlDuLE?si=Hx10Vj7v34z1160r\n\nUn cordial saludo,\nApuleyo Ediciones`;
+
 export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: Props) {
   const [authors, setAuthors] = useState<AuthorEmail[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [introText, setIntroText] = useState('');
+  const [outroText, setOutroText] = useState('');
+  const [activeTab, setActiveTab] = useState('message');
 
   useEffect(() => {
-    if (!open || !allItems.length) return;
-    loadAuthors();
+    if (!open) return;
+    setSubject(`Liquidación ${liquidation.year} - Apuleyo Ediciones`);
+    setIntroText(DEFAULT_INTRO(liquidation.year));
+    setOutroText(DEFAULT_OUTRO());
+    if (allItems.length) loadAuthors();
   }, [open, allItems]);
 
   const loadAuthors = async () => {
     setLoading(true);
-    // Group items by author
     const authorMap = new Map<string, LiquidationItem[]>();
     for (const item of allItems) {
       const list = authorMap.get(item.author) ?? [];
@@ -49,7 +65,6 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       authorMap.set(item.author, list);
     }
 
-    // Fetch emails for all authors
     const authorNames = [...authorMap.keys()];
     let allBooks: any[] = [];
     let from = 0;
@@ -110,27 +125,28 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     return html;
   };
 
+  const resolveText = (text: string, author: string): string => {
+    return text.replace(/\{autor\}/gi, author);
+  };
+
   const sendEmail = async (authorData: AuthorEmail, idx: number) => {
     setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sending' } : a));
 
     try {
-      // Generate and upload DOCX
       const blob = await generateAuthorDOCX(authorData.author, allItems, liquidation);
       const fileName = `${liquidation.year}/${authorData.author.replace(/\s+/g, '_')}.docx`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('liquidation-docs')
         .upload(fileName, blob, { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      
+
       if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
 
       const { data: urlData } = supabase.storage.from('liquidation-docs').getPublicUrl(fileName);
       const docxUrl = urlData.publicUrl;
 
-      // Build summary HTML
       const summaryHtml = buildSummaryHtml(authorData.author);
 
-      // Send email via edge function
       const { error } = await supabase.functions.invoke('send-liquidation-email', {
         body: {
           author: authorData.author,
@@ -138,6 +154,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
           liquidationYear: liquidation.year,
           summaryHtml,
           docxUrl,
+          subject: resolveText(subject, authorData.author),
+          introText: resolveText(introText, authorData.author),
+          outroText: resolveText(outroText, authorData.author),
         },
       });
 
@@ -181,57 +200,108 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
             <Loader2 className="h-5 w-5 animate-spin" /> Cargando autores…
           </div>
         ) : (
-          <>
-            <div className="flex gap-3 text-sm flex-wrap">
-              <Badge variant="default">{withEmail.length} con email</Badge>
-              {withoutEmail.length > 0 && <Badge variant="secondary">{withoutEmail.length} sin email</Badge>}
-              {sentCount > 0 && <Badge className="bg-green-600">{sentCount} enviados</Badge>}
-              {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="message">✏️ Mensaje</TabsTrigger>
+              <TabsTrigger value="recipients">📧 Destinatarios ({withEmail.length})</TabsTrigger>
+            </TabsList>
 
-            <div className="rounded-md border max-h-[50vh] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Autor</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className="text-right">Libros</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="w-20"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {authors.map((a, idx) => (
-                    <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : ''}>
-                      <TableCell className="font-medium text-sm">{a.author}</TableCell>
-                      <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
-                      <TableCell className="text-right text-sm">{a.bookCount}</TableCell>
-                      <TableCell className="text-right text-sm">{formatEur(a.total)}</TableCell>
-                      <TableCell>
-                        {a.status === 'pending' && a.email && <Badge variant="secondary">Pendiente</Badge>}
-                        {a.status === 'sending' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                        {a.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                        {a.status === 'error' && (
-                          <span className="flex items-center gap-1" title={a.error}>
-                            <XCircle className="h-4 w-4 text-destructive" />
-                          </span>
-                        )}
-                        {!a.email && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
-                      </TableCell>
-                      <TableCell>
-                        {a.email && a.status !== 'sent' && a.status !== 'sending' && (
-                          <Button variant="ghost" size="sm" onClick={() => sendEmail(a, idx)} disabled={sending}>
-                            <Mail className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </TableCell>
+            <TabsContent value="message" className="space-y-4 mt-4">
+              <div>
+                <Label htmlFor="subject" className="text-sm font-medium">Asunto</Label>
+                <Input
+                  id="subject"
+                  value={subject}
+                  onChange={e => setSubject(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="intro" className="text-sm font-medium">
+                  Texto de introducción
+                  <span className="text-muted-foreground font-normal ml-2">(antes de la tabla de ventas)</span>
+                </Label>
+                <Textarea
+                  id="intro"
+                  value={introText}
+                  onChange={e => setIntroText(e.target.value)}
+                  rows={8}
+                  className="mt-1 font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="outro" className="text-sm font-medium">
+                  Texto de cierre
+                  <span className="text-muted-foreground font-normal ml-2">(después de la tabla y el botón de descarga)</span>
+                </Label>
+                <Textarea
+                  id="outro"
+                  value={outroText}
+                  onChange={e => setOutroText(e.target.value)}
+                  rows={8}
+                  className="mt-1 font-mono text-sm"
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                💡 Usa <code className="bg-muted px-1 rounded">{'{autor}'}</code> para insertar el nombre del autor automáticamente.
+              </p>
+            </TabsContent>
+
+            <TabsContent value="recipients" className="mt-4 space-y-3">
+              <div className="flex gap-3 text-sm flex-wrap">
+                <Badge variant="default">{withEmail.length} con email</Badge>
+                {withoutEmail.length > 0 && <Badge variant="secondary">{withoutEmail.length} sin email</Badge>}
+                {sentCount > 0 && <Badge className="bg-green-600">{sentCount} enviados</Badge>}
+                {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
+              </div>
+
+              <div className="rounded-md border max-h-[45vh] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Autor</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead className="text-right">Libros</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="w-20"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </>
+                  </TableHeader>
+                  <TableBody>
+                    {authors.map((a, idx) => (
+                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : ''}>
+                        <TableCell className="font-medium text-sm">{a.author}</TableCell>
+                        <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
+                        <TableCell className="text-right text-sm">{a.bookCount}</TableCell>
+                        <TableCell className="text-right text-sm">{formatEur(a.total)}</TableCell>
+                        <TableCell>
+                          {a.status === 'pending' && a.email && <Badge variant="secondary">Pendiente</Badge>}
+                          {a.status === 'sending' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                          {a.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                          {a.status === 'error' && (
+                            <span className="flex items-center gap-1" title={a.error}>
+                              <XCircle className="h-4 w-4 text-destructive" />
+                            </span>
+                          )}
+                          {!a.email && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          {a.email && a.status !== 'sent' && a.status !== 'sending' && (
+                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, idx)} disabled={sending}>
+                              <Mail className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
 
         <DialogFooter>
