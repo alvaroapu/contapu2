@@ -158,14 +158,12 @@ export function parseOnlineFile(wb: XLSX.WorkBook): ParsedRow[] {
   const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
   if (raw.length < 4) return [];
 
-  // Find the ISBN column and VENTAS ONLINE column by scanning header rows
-  // Row 1 has group headers (TÍTULO, ANUAL, months, ISBN)
-  // Row 2 has sub-headers (ENVÍOS, VENTAS, etc., VENTAS ONLINE)
+  // Find column indices from header rows (0-indexed)
   let cIsbn = -1;
   let cVentasOnline = -1;
-  const cTitle = 0; // Column A is always title
+  const cTitle = 0;
 
-  // Scan row 1 (index 0) for ISBN column
+  // Row 0: scan for ISBN
   if (raw[0]) {
     for (let c = 0; c < raw[0].length; c++) {
       if (raw[0][c] && normalizeText(String(raw[0][c])).includes('isbn')) {
@@ -173,7 +171,7 @@ export function parseOnlineFile(wb: XLSX.WorkBook): ParsedRow[] {
       }
     }
   }
-  // Scan row 2 (index 1) for VENTAS ONLINE column
+  // Row 1: scan for VENTAS ONLINE
   if (raw[1]) {
     for (let c = 0; c < raw[1].length; c++) {
       if (raw[1][c] && normalizeText(String(raw[1][c])).includes('ventas online')) {
@@ -185,17 +183,35 @@ export function parseOnlineFile(wb: XLSX.WorkBook): ParsedRow[] {
   if (cIsbn < 0 || cVentasOnline < 0) return [];
 
   const rows: ParsedRow[] = [];
-  // Books start at row 3 (index 2+), every ~4 rows is a book but just check for ISBN presence
+
+  // Structure: each book is a group of ~4 rows.
+  // The title row has the book name in col A and ISBN in col CE.
+  // VENTAS ONLINE is on the Azeta sub-row (typically 3 rows below).
+  // Strategy: find title rows by ISBN presence, then scan next rows for VENTAS ONLINE.
   for (let i = 2; i < raw.length; i++) {
     const r = raw[i];
     if (!r) continue;
     const isbnRaw = r[cIsbn] ? String(r[cIsbn]).trim() : '';
     if (!isbnRaw || !normalizeIsbn(isbnRaw).startsWith('978')) continue;
 
-    const ventas = parseInt(r[cVentasOnline]) || 0;
+    const title = r[cTitle] ? String(r[cTitle]).trim() : '';
+
+    // Look for VENTAS ONLINE in sub-rows below (up to 5 rows ahead)
+    let ventas = 0;
+    for (let j = i + 1; j < Math.min(i + 6, raw.length); j++) {
+      const sr = raw[j];
+      if (!sr) continue;
+      // Stop if we hit another title row (has ISBN)
+      if (sr[cIsbn] && String(sr[cIsbn]).trim().length > 0) break;
+      const val = sr[cVentasOnline];
+      if (val !== null && val !== undefined && val !== '') {
+        ventas = parseInt(String(val)) || 0;
+        break;
+      }
+    }
+
     if (ventas === 0) continue;
 
-    const title = r[cTitle] ? String(r[cTitle]).trim() : '';
     rows.push({
       isbn: isbnRaw,
       title,
