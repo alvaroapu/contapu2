@@ -169,6 +169,10 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
               <Input value={form.maidhisa_ref} onChange={(e) => setForm({ ...form, maidhisa_ref: e.target.value })} />
             </div>
           </div>
+          <div className="space-y-1">
+            <Label>Email autor</Label>
+            <Input type="email" value={form.author_email} onChange={(e) => setForm({ ...form, author_email: e.target.value })} placeholder="autor@ejemplo.com" />
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={save.isPending}>

@@ -230,6 +230,7 @@ export function useExportCatalog() {
         'Fecha publicación': b.publication_date ?? '',
         Estado: b.status,
         'Ref. Maidhisa': b.maidhisa_ref ?? '',
+        'Email autor': b.author_email ?? '',
       }));
 
       const ws = XLSX.utils.json_to_sheet(rows);
