@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
       subject,
       introText,
       outroText,
+      fromEmail: customFromEmail,
     } = await req.json();
 
     if (!author || !authorEmail || !liquidationYear || !summaryHtml) {
