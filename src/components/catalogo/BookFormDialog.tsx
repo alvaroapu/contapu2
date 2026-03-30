@@ -23,6 +23,7 @@ const emptyForm = {
   publication_date: '',
   status: 'active',
   maidhisa_ref: '',
+  author_email: '',
 };
 
 export function BookFormDialog({ open, onOpenChange, book }: Props) {
