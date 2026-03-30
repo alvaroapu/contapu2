@@ -190,6 +190,13 @@ export default function LiquidacionDetalle() {
             {genAllLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
             Todos los informes
           </Button>
+          <Button variant="outline" size="sm" onClick={async () => {
+            const items = await fetchAllLiquidationItems(liq.id);
+            setEmailItems(items);
+            setEmailDialogOpen(true);
+          }}>
+            <Mail className="mr-1 h-4 w-4" /> Enviar emails
+          </Button>
         </div>
       </div>
 
