@@ -205,7 +205,7 @@ export async function calculateLiquidationItems(
   // Build items
   const items: any[] = [];
   for (const [bookId, units] of bookMap) {
-    if (units.dist === 0 && units.online === 0 && units.school === 0) continue;
+    // Include all books, even with 0 sales
     const pvp = pvpMap.get(bookId) ?? 0;
     const dAmt = units.dist * pvp * (params.distributor_royalty_pct / 100);
     const oAmt = units.online * pvp * (params.online_royalty_pct / 100);
