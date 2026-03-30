@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ImportResultView, ImportResultData } from '@/components/importar/ImportResult';
-import { parseAzetaFile, parseMaidhisaFile, matchAzeta, matchMaidhisa } from '@/lib/importProcessors';
+import { parseAzetaFile, parseMaidhisaFile, parseOnlineFile, matchAzeta, matchMaidhisa, matchOnline } from '@/lib/importProcessors';
 import { MONTHS, getYears } from '@/lib/constants';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
@@ -51,7 +51,7 @@ export default function Importar() {
     },
   });
 
-  const importableDists = distributors.filter(d => d.code === 'azeta' || d.code === 'maidhisa');
+  const importableDists = distributors.filter(d => d.code === 'azeta' || d.code === 'maidhisa' || d.code === 'online');
 
   async function handleProcess() {
     if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return; }
@@ -92,7 +92,7 @@ export default function Importar() {
       for (let fi = 0; fi < files.length; fi++) {
         const buf = await files[fi].arrayBuffer();
         const wb = XLSX.read(buf);
-        const rows = distCode === 'azeta' ? parseAzetaFile(wb) : parseMaidhisaFile(wb);
+        const rows = distCode === 'azeta' ? parseAzetaFile(wb) : distCode === 'online' ? parseOnlineFile(wb) : parseMaidhisaFile(wb);
         allRows.push(...rows);
         fileNames.push(files[fi].name);
         setProgress(10 + Math.round(((fi + 1) / files.length) * 15));
@@ -101,7 +101,7 @@ export default function Importar() {
       if (allRows.length === 0) { toast.error('No se encontraron registros válidos'); setProcessing(false); return; }
       setProgress(30);
 
-      const matchResult = distCode === 'azeta' ? await matchAzeta(allRows) : await matchMaidhisa(allRows);
+      const matchResult = distCode === 'azeta' ? await matchAzeta(allRows) : distCode === 'online' ? await matchOnline(allRows) : await matchMaidhisa(allRows);
       setProgress(50);
 
       const { data: user } = await supabase.auth.getUser();

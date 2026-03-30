@@ -153,6 +153,87 @@ export async function matchAzeta(rows: ParsedRow[]): Promise<ImportMatchResult> 
   return { matched, unmatched };
 }
 
+export function parseOnlineFile(wb: XLSX.WorkBook): ParsedRow[] {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  if (raw.length < 4) return [];
+
+  // Find the ISBN column and VENTAS ONLINE column by scanning header rows
+  // Row 1 has group headers (TÍTULO, ANUAL, months, ISBN)
+  // Row 2 has sub-headers (ENVÍOS, VENTAS, etc., VENTAS ONLINE)
+  let cIsbn = -1;
+  let cVentasOnline = -1;
+  const cTitle = 0; // Column A is always title
+
+  // Scan row 1 (index 0) for ISBN column
+  if (raw[0]) {
+    for (let c = 0; c < raw[0].length; c++) {
+      if (raw[0][c] && normalizeText(String(raw[0][c])).includes('isbn')) {
+        cIsbn = c;
+      }
+    }
+  }
+  // Scan row 2 (index 1) for VENTAS ONLINE column
+  if (raw[1]) {
+    for (let c = 0; c < raw[1].length; c++) {
+      if (raw[1][c] && normalizeText(String(raw[1][c])).includes('ventas online')) {
+        cVentasOnline = c;
+      }
+    }
+  }
+
+  if (cIsbn < 0 || cVentasOnline < 0) return [];
+
+  const rows: ParsedRow[] = [];
+  // Books start at row 3 (index 2+), every ~4 rows is a book but just check for ISBN presence
+  for (let i = 2; i < raw.length; i++) {
+    const r = raw[i];
+    if (!r) continue;
+    const isbnRaw = r[cIsbn] ? String(r[cIsbn]).trim() : '';
+    if (!isbnRaw || !normalizeIsbn(isbnRaw).startsWith('978')) continue;
+
+    const ventas = parseInt(r[cVentasOnline]) || 0;
+    if (ventas === 0) continue;
+
+    const title = r[cTitle] ? String(r[cTitle]).trim() : '';
+    rows.push({
+      isbn: isbnRaw,
+      title,
+      entradas: 0,
+      ventas: Math.max(0, ventas),
+      devoluciones: Math.max(0, -ventas),
+    });
+  }
+  return rows;
+}
+
+export async function matchOnline(rows: ParsedRow[]): Promise<ImportMatchResult> {
+  const allBooks = await fetchAllBooks();
+  const isbnMap = new Map<string, any>();
+  for (const b of allBooks) {
+    if (b.isbn) isbnMap.set(normalizeIsbn(b.isbn), b);
+  }
+
+  const matched: MatchedEntry[] = [];
+  const unmatched: UnmatchedEntry[] = [];
+
+  for (const row of rows) {
+    const book = row.isbn ? isbnMap.get(normalizeIsbn(row.isbn)) : null;
+
+    const movements: MatchedEntry['movements'] = [];
+    if (row.ventas > 0) movements.push({ type: 'venta', quantity: row.ventas });
+    if (row.devoluciones > 0) movements.push({ type: 'devolucion', quantity: row.devoluciones });
+    if (movements.length === 0) continue;
+
+    if (book) {
+      matched.push({ bookId: book.id, bookTitle: book.title, isbn: row.isbn, movements });
+    } else {
+      unmatched.push({ isbn: row.isbn, title: row.title, entradas: 0, ventas: row.ventas, devoluciones: row.devoluciones, status: 'pending' });
+    }
+  }
+  return { matched, unmatched };
+}
+
 export async function matchMaidhisa(rows: ParsedRow[]): Promise<ImportMatchResult> {
   const allBooks = await fetchAllBooks();
   const refMap = new Map<string, any>();
