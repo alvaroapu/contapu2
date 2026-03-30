@@ -65,15 +65,13 @@ export default function LiquidacionDetalle() {
 
   // Summary
   const summary = useMemo(() => {
-    if (!items) return { authors: 0, books: 0, units: 0, total: 0 };
-    
     return {
-      authors: Number(totalAuthors),
-      books: items.length,
-      units: items.reduce((s, i) => s + i.distributor_units + i.online_units + i.school_units, 0),
-      total: items.reduce((s, i) => s + i.total_amount, 0),
+      authors: globalTotals?.authors ?? 0,
+      books: globalTotals?.books ?? 0,
+      units: globalTotals?.units ?? 0,
+      total: globalTotals?.totalPositive ?? 0,
     };
-  }, [items, totalAuthors]);
+  }, [globalTotals]);
 
   const handleRecalculate = async () => {
     if (!liq) return;
