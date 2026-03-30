@@ -147,6 +147,7 @@ export function ImportResultView({ data, onBack }: Props) {
     } as any).eq('id', data.batch.id);
     toast.success('Todos los pendientes ignorados');
   }
+  async function revertBatch() {
     await supabase.from('sales_movements').delete().eq('import_batch_id', data.batch.id);
     await supabase.from('import_batches').update({ status: 'reverted' } as any).eq('id', data.batch.id);
     toast.success('Importación revertida');
