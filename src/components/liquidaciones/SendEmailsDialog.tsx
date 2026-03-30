@@ -37,7 +37,7 @@ const DEFAULT_INTRO = (year: number) =>
   `Estimado/a {autor},\n\nLe enviamos el informe de liquidación correspondiente al año ${year}.\n\nEs importante tener en cuenta la operativa de ventas en librerías a través de distribuidoras, por lo que pasamos a detallarla:\n\n1. Las distribuidoras cuentan con un depósito de ejemplares que desde la editorial les hacemos llegar.\n2. Las distribuidoras mandan ejemplares en depósito a librerías y a grandes superficies; el depósito dura de 3 a 6 meses, por lo que hasta transcurridos estos plazos, las distribuidoras desconocen las ventas de los libros.`;
 
 const DEFAULT_OUTRO = () =>
-  `Para que la editorial pueda realizar el pago, lo más conveniente, para agilizar el proceso de cobro, es que como autor/a realice una factura por PayPal a icidre@apuleyoediciones.com. IMPORTANTE QUE SEA FACTURA Y NO UNA PETICIÓN DE PAGO.\n\nRecomendamos la primera opción, para evitar trámites.\n\nOs facilitamos un vídeo para usarlo como guía en caso de tener ciertas dificultades con la factura:\nhttps://youtu.be/eVC-zxlDuLE?si=Hx10Vj7v34z1160r\n\nUn cordial saludo,\nApuleyo Ediciones`;
+  `Para que la editorial pueda realizar el pago, lo más conveniente, para agilizar el proceso de cobro, es que como autor/a nos conteste a este correo indicando su número de cuenta.\n\nLa editorial le realizará una autofactura, como rendimientos del trabajo, para que usted, como autor/a, NO tenga que darse de alta como autónomo/a.\n\nUn cordial saludo,\nApuleyo Ediciones`;
 
 export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: Props) {
   const [authors, setAuthors] = useState<AuthorEmail[]>([]);
