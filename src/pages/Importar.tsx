@@ -54,7 +54,7 @@ export default function Importar() {
   const importableDists = distributors.filter(d => d.code === 'azeta' || d.code === 'maidhisa');
 
   async function handleProcess() {
-    if (!file) { toast.error('Selecciona un archivo'); return; }
+    if (files.length === 0) { toast.error('Selecciona al menos un archivo'); return; }
     const dist = distributors.find(d => d.code === distCode);
     if (!dist) return;
 
@@ -71,10 +71,10 @@ export default function Importar() {
       setShowOverwrite(true);
       return;
     }
-    processFile();
+    processFiles();
   }
 
-  async function processFile(revertId?: string) {
+  async function processFiles(revertId?: string) {
     setProcessing(true);
     setProgress(5);
     try {
@@ -83,24 +83,31 @@ export default function Importar() {
       if (revertId) {
         await supabase.from('sales_movements').delete().eq('import_batch_id', revertId);
         await supabase.from('import_batches').update({ status: 'reverted' } as any).eq('id', revertId);
-        setProgress(15);
+        setProgress(10);
       }
 
-      const buf = await file!.arrayBuffer();
-      const wb = XLSX.read(buf);
-      setProgress(20);
+      // Parse all files and merge rows
+      const allRows: any[] = [];
+      const fileNames: string[] = [];
+      for (let fi = 0; fi < files.length; fi++) {
+        const buf = await files[fi].arrayBuffer();
+        const wb = XLSX.read(buf);
+        const rows = distCode === 'azeta' ? parseAzetaFile(wb) : parseMaidhisaFile(wb);
+        allRows.push(...rows);
+        fileNames.push(files[fi].name);
+        setProgress(10 + Math.round(((fi + 1) / files.length) * 15));
+      }
 
-      const rows = distCode === 'azeta' ? parseAzetaFile(wb) : parseMaidhisaFile(wb);
-      if (rows.length === 0) { toast.error('No se encontraron registros válidos'); setProcessing(false); return; }
+      if (allRows.length === 0) { toast.error('No se encontraron registros válidos'); setProcessing(false); return; }
       setProgress(30);
 
-      const matchResult = distCode === 'azeta' ? await matchAzeta(rows) : await matchMaidhisa(rows);
+      const matchResult = distCode === 'azeta' ? await matchAzeta(allRows) : await matchMaidhisa(allRows);
       setProgress(50);
 
       const { data: user } = await supabase.auth.getUser();
       const { data: batch, error: batchErr } = await supabase.from('import_batches').insert({
         distributor_id: dist.id,
-        file_name: file!.name,
+        file_name: fileNames.join(', '),
         year, month,
         status: 'processed',
         records_imported: matchResult.matched.length,
@@ -139,7 +146,7 @@ export default function Importar() {
     } finally {
       setProcessing(false);
       setProgress(0);
-      setFile(null);
+      setFiles([]);
     }
   }
 
