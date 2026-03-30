@@ -399,7 +399,7 @@ async function fetchAllLiquidationItems(liquidationId: string): Promise<Liquidat
       p_liquidation_id: liquidationId,
       p_search: '',
       p_author_filter: '',
-      p_only_with_sales: true,
+      p_only_with_sales: false,
       p_limit: 500,
       p_offset: offset,
     });
