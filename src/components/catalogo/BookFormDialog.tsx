@@ -80,6 +80,7 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
         publication_date: form.publication_date || null,
         status: form.status,
         maidhisa_ref: form.maidhisa_ref || null,
+        author_email: form.author_email || null,
       },
       { onSuccess: () => onOpenChange(false) }
     );
