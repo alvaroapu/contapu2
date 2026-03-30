@@ -98,7 +98,7 @@ export function ImportResultView({ data, onBack }: Props) {
   async function createAndAssign(idx: number) {
     const entry = unmatchedEntries[idx];
     const title = normalizeTitle(entry.title);
-    const bookData: any = { title, author: 'Sin especificar', pvp: 0, status: 'active' };
+    const bookData: any = { title, author: 'Sin especificar', pvp: 15, status: 'active' };
     if (entry.isbn) bookData.isbn = entry.isbn;
     if (entry.ean) bookData.ean = entry.ean;
     if (entry.reference) bookData.maidhisa_ref = entry.reference;
@@ -130,7 +130,7 @@ export function ImportResultView({ data, onBack }: Props) {
         if (updated[idx].status !== 'pending') continue;
         const entry = updated[idx];
         const title = normalizeTitle(entry.title);
-        const bookData: any = { title, author: 'Sin especificar', pvp: 0, status: 'active' };
+        const bookData: any = { title, author: 'Sin especificar', pvp: 15, status: 'active' };
         if (entry.isbn) bookData.isbn = entry.isbn;
         if (entry.ean) bookData.ean = entry.ean;
         if (entry.reference) bookData.maidhisa_ref = entry.reference;

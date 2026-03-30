@@ -66,7 +66,7 @@ export function parseAzetaFile(wb: XLSX.WorkBook): ParsedRow[] {
     if (!isbn || !isbn.startsWith('978')) continue;
 
     rows.push({
-      isbn: normalizeIsbn(isbn),
+      isbn: isbn,
       ean: cEan >= 0 && r[cEan] ? String(r[cEan]).trim() : undefined,
       title: cTitle >= 0 && r[cTitle] ? String(r[cTitle]).trim() : '',
       entradas: Math.max(0, parseInt(r[cEntradas]) || 0),
