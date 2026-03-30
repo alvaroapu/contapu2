@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.0";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -12,8 +10,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { author, authorEmail, liquidationYear, summaryHtml, docxUrl } =
-      await req.json();
+    const {
+      author,
+      authorEmail,
+      liquidationYear,
+      summaryHtml,
+      docxUrl,
+      subject,
+      introText,
+      outroText,
+    } = await req.json();
 
     if (!author || !authorEmail || !liquidationYear || !summaryHtml) {
       return new Response(
@@ -32,31 +38,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build email HTML body
+    // Convert intro/outro newlines to <br> for HTML
+    const introHtml = (introText || `Estimado/a ${author},\n\nLe enviamos el informe de liquidación correspondiente al año ${liquidationYear}.`)
+      .replace(/\n/g, "<br>");
+    const outroHtml = (outroText || "")
+      .replace(/\n/g, "<br>");
+
     const emailBody = `
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
-  <p>Estimado/a <strong>${author}</strong>,</p>
-  <p>Le enviamos el informe de liquidación correspondiente al año <strong>${liquidationYear}</strong>.</p>
+  <div style="margin-bottom: 20px;">${introHtml}</div>
   
   <h3 style="color: #1a56db; border-bottom: 2px solid #1a56db; padding-bottom: 5px;">Resumen de ventas</h3>
   ${summaryHtml}
   
   ${docxUrl ? `<p style="margin-top: 20px;"><a href="${docxUrl}" style="display: inline-block; background-color: #1a56db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">📄 Descargar informe completo (DOCX)</a></p>` : ""}
   
+  ${outroHtml ? `<div style="margin-top: 20px;">${outroHtml}</div>` : ""}
+  
   <hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">
   <p style="font-size: 12px; color: #999;">Este email ha sido enviado automáticamente. Por favor, no responda a este mensaje.</p>
 </body>
 </html>`;
 
-    // Send via Acumbamail REST API
+    const emailSubject = subject || `Liquidación ${liquidationYear} - Apuleyo Ediciones`;
+
     const formData = new FormData();
     formData.append("auth_token", authToken);
     formData.append("from_email", fromEmail);
     formData.append("to_email", authorEmail);
-    formData.append("subject", `Liquidación ${liquidationYear} - Apuleyo Ediciones`);
+    formData.append("subject", emailSubject);
     formData.append("body", emailBody);
 
     const res = await fetch("https://acumbamail.com/api/1/sendOne/", {
