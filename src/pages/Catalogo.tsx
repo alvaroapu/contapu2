@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookFormDialog } from '@/components/catalogo/BookFormDialog';
 import { ImportBooksDialog } from '@/components/catalogo/ImportBooksDialog';
 import { MergeBookDialog } from '@/components/catalogo/MergeBookDialog';
+import { AutoMergeDialog } from '@/components/catalogo/AutoMergeDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
 import { Plus, Upload, ArrowUpDown, Download, Trash2, Merge } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
