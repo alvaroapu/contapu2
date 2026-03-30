@@ -275,7 +275,7 @@ export default function LiquidacionDetalle() {
                 return (
                   <>
                     {books.map((item, idx) => (
-                      <TableRow key={item.item_id}>
+                      <TableRow key={item.item_id} className={item.total_amount < 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}>
                         <TableCell className="font-medium">{idx === 0 ? author : ''}</TableCell>
                         <TableCell>{item.book_title}</TableCell>
                         <TableCell>{formatDate(item.publication_date)}</TableCell>
