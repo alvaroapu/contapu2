@@ -191,16 +191,28 @@ export async function calculateLiquidationItems(
     bookMap.set(m.book_id, entry);
   }
 
-  // Fetch book PVPs
-  const bookIds = [...bookMap.keys()];
-  if (bookIds.length === 0) return;
-
+  // Fetch ALL active books to include those with 0 sales
   const pvpMap = new Map<string, number>();
-  for (let i = 0; i < bookIds.length; i += 50) {
-    const chunk = bookIds.slice(i, i + 50);
-    const { data } = await supabase.from('books').select('id, pvp').in('id', chunk);
-    for (const b of data ?? []) pvpMap.set(b.id, Number(b.pvp));
+  let allBooksFrom = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('books')
+      .select('id, pvp')
+      .eq('status', 'active')
+      .range(allBooksFrom, allBooksFrom + 999);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    for (const b of data) {
+      pvpMap.set(b.id, Number(b.pvp));
+      if (!bookMap.has(b.id)) {
+        bookMap.set(b.id, { dist: 0, online: 0, school: 0 });
+      }
+    }
+    if (data.length < 1000) break;
+    allBooksFrom += 1000;
   }
+
+  if (bookMap.size === 0) return;
 
   // Build items
   const items: any[] = [];
