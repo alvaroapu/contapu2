@@ -85,6 +85,27 @@ export function useLiquidationItems(
   });
 }
 
+export function useLiquidationTotals(liquidationId: string) {
+  return useQuery({
+    queryKey: ['liquidation-totals', liquidationId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_liquidation_totals', {
+        p_liquidation_id: liquidationId,
+      });
+      if (error) throw error;
+      const row = data?.[0];
+      return {
+        authors: Number(row?.total_authors ?? 0),
+        books: Number(row?.total_books ?? 0),
+        units: Number(row?.total_units ?? 0),
+        totalPositive: Number(row?.total_positive_amount ?? 0),
+        totalAll: Number(row?.total_all_amount ?? 0),
+      };
+    },
+    enabled: !!liquidationId,
+  });
+}
+
 export function useLiquidationAuthors(liquidationId: string) {
   return useQuery({
     queryKey: ['liquidation-authors', liquidationId],
