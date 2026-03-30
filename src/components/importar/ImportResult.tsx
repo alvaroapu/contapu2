@@ -86,16 +86,26 @@ export function ImportResultView({ data, onBack }: Props) {
     qc.invalidateQueries({ queryKey: ['importBatches'] });
   }
 
+  function normalizeTitle(raw: string): string {
+    if (!raw) return raw;
+    // If entirely uppercase, convert to sentence case
+    if (raw === raw.toUpperCase()) {
+      return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    }
+    return raw;
+  }
+
   async function createAndAssign(idx: number) {
     const entry = unmatchedEntries[idx];
-    const bookData: any = { title: entry.title, author: 'Sin especificar', pvp: 0, status: 'active' };
+    const title = normalizeTitle(entry.title);
+    const bookData: any = { title, author: 'Sin especificar', pvp: 0, status: 'active' };
     if (entry.isbn) bookData.isbn = entry.isbn;
     if (entry.ean) bookData.ean = entry.ean;
     if (entry.reference) bookData.maidhisa_ref = entry.reference;
 
     const { data: newBook, error } = await supabase.from('books').insert(bookData).select('id').single() as any;
     if (error) { toast.error('Error al crear: ' + error.message); return; }
-    await assignBook(idx, newBook.id, entry.title);
+    await assignBook(idx, newBook.id, title);
     toast.success('Libro creado y asignado');
   }
 
@@ -244,6 +254,9 @@ export function ImportResultView({ data, onBack }: Props) {
                             <div className="flex gap-1">
                               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setAssigningIdx(idx); setBookSearch(''); }}>
                                 Asignar
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => createAndAssign(idx)}>
+                                Crear
                               </Button>
                               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => ignoreEntry(idx)}>
                                 Ignorar
