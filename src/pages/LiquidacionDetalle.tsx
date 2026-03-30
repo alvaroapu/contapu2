@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { EditableCell } from '@/components/ventas/EditableCell';
 import {
-  useLiquidation, useLiquidationItems, useLiquidationAuthors,
+  useLiquidation, useLiquidationItems, useLiquidationAuthors, useLiquidationTotals,
   useFinalizeLiquidation, useDeleteLiquidation, useUpdateLiquidationItem,
   calculateLiquidationItems,
   type LiquidationItem,
