@@ -176,11 +176,19 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const handleSendAll = async () => {
     setSending(true);
-    for (let i = 0; i < authors.length; i++) {
-      const a = authors[i];
-      if (!a.email || a.status === 'sent') continue;
-      await sendEmail(a, i);
-      await new Promise(r => setTimeout(r, 500));
+    const BATCH_SIZE = 10;
+    const BATCH_DELAY_MS = 500;
+
+    const toSend = authors
+      .map((a, idx) => ({ ...a, idx }))
+      .filter(a => a.email && a.status !== 'sent');
+
+    for (let i = 0; i < toSend.length; i += BATCH_SIZE) {
+      const batch = toSend.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(a => sendEmail(a, a.idx)));
+      if (i + BATCH_SIZE < toSend.length) {
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+      }
     }
     setSending(false);
     toast.success('Proceso completado');
