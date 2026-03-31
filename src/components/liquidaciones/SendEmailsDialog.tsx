@@ -208,7 +208,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_\-]/g, '_')
         .replace(/_+/g, '_');
-      const fileName = `test_${liquidation.year}/${sanitizedName}.docx`;
+      const fileName = `${liquidation.year}/${sanitizedName}.docx`;
 
       const { error: uploadError } = await supabase.storage
         .from('liquidation-docs')
