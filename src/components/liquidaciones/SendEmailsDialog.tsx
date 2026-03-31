@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateAuthorDOCX } from './LiquidacionDOCX';
@@ -48,6 +48,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [outroText, setOutroText] = useState('');
   const [fromEmail, setFromEmail] = useState('');
   const [activeTab, setActiveTab] = useState('message');
+  const [testingPdf, setTestingPdf] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -194,6 +195,57 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     toast.success('Proceso completado');
   };
 
+  const handleTestPdf = async () => {
+    const firstAuthor = authors[0];
+    if (!firstAuthor) {
+      toast.error('No hay autores disponibles para la prueba');
+      return;
+    }
+    setTestingPdf(true);
+    try {
+      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const sanitizedName = firstAuthor.author
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/_+/g, '_');
+      const fileName = `test_${liquidation.year}/${sanitizedName}.docx`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('liquidation-docs')
+        .upload(fileName, blob, { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+      if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
+
+      const { data: urlData } = supabase.storage.from('liquidation-docs').getPublicUrl(fileName);
+
+      const { data, error } = await supabase.functions.invoke('send-liquidation-email', {
+        body: {
+          author: firstAuthor.author,
+          liquidationYear: liquidation.year,
+          docxUrl: urlData.publicUrl,
+          testOnly: true,
+        },
+      });
+
+      if (error) throw error;
+
+      const pdfBytes = Uint8Array.from(atob(data.pdfBase64), c => c.charCodeAt(0));
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.pdfFileName;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`PDF generado correctamente para "${firstAuthor.author}"`);
+    } catch (err: any) {
+      toast.error(`Error en conversión PDF: ${err.message}`);
+    } finally {
+      setTestingPdf(false);
+    }
+  };
+
   const withEmail = authors.filter(a => a.email);
   const withoutEmail = authors.filter(a => !a.email);
   const sentCount = authors.filter(a => a.status === 'sent').length;
@@ -336,6 +388,10 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+          <Button variant="secondary" onClick={handleTestPdf} disabled={testingPdf || sending || authors.length === 0}>
+            {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            Probar PDF
+          </Button>
           <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
             {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Enviar a {withEmail.length - sentCount} autor(es)

@@ -69,7 +69,41 @@ Deno.serve(async (req) => {
       introText,
       outroText,
       fromEmail: customFromEmail,
+      testOnly,
     } = await req.json();
+
+    // --- Convert DOCX to PDF via Gotenberg ---
+    let pdfBase64: string | null = null;
+    const sanitizedAuthor = (author || "test")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9_\-]/g, "_")
+      .replace(/_+/g, "_");
+    const pdfFileName = `Liquidacion_${liquidationYear}_${sanitizedAuthor}.pdf`;
+
+    if (docxUrl) {
+      const docxRes = await fetch(docxUrl);
+      if (!docxRes.ok) {
+        throw new Error(`Failed to fetch DOCX from storage: ${docxRes.status}`);
+      }
+      const docxBuffer = await docxRes.arrayBuffer();
+      const pdfBuffer = await convertDocxToPdf(docxBuffer);
+      pdfBase64 = arrayBufferToBase64(pdfBuffer);
+    }
+
+    // Test mode: return the PDF without sending email
+    if (testOnly) {
+      if (!pdfBase64) {
+        return new Response(
+          JSON.stringify({ error: "No DOCX URL provided for test conversion" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(
+        JSON.stringify({ success: true, pdfBase64, pdfFileName }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     if (!author || !authorEmail || !liquidationYear || !summaryHtml) {
       return new Response(
@@ -87,25 +121,6 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Acumbamail credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
-    }
-
-    // --- Convert DOCX to PDF via Gotenberg ---
-    let pdfBase64: string | null = null;
-    const sanitizedAuthor = author
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9_\-]/g, "_")
-      .replace(/_+/g, "_");
-    const pdfFileName = `Liquidacion_${liquidationYear}_${sanitizedAuthor}.pdf`;
-
-    if (docxUrl) {
-      const docxRes = await fetch(docxUrl);
-      if (!docxRes.ok) {
-        throw new Error(`Failed to fetch DOCX from storage: ${docxRes.status}`);
-      }
-      const docxBuffer = await docxRes.arrayBuffer();
-      const pdfBuffer = await convertDocxToPdf(docxBuffer);
-      pdfBase64 = arrayBufferToBase64(pdfBuffer);
     }
 
     // Convert intro/outro newlines to <br> for HTML
