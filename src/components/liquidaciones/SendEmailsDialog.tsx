@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateAuthorDOCX } from './LiquidacionDOCX';
@@ -48,6 +48,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [outroText, setOutroText] = useState('');
   const [fromEmail, setFromEmail] = useState('');
   const [activeTab, setActiveTab] = useState('message');
+  const [authorSearch, setAuthorSearch] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -280,6 +281,16 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                 {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
               </div>
 
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar autor..."
+                  value={authorSearch}
+                  onChange={e => setAuthorSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
               <div className="rounded-md border max-h-[45vh] overflow-y-auto">
                 <Table>
                   <TableHeader>
@@ -293,7 +304,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {authors.map((a, idx) => (
+                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => (
                       <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : ''}>
                         <TableCell className="font-medium text-sm">{a.author}</TableCell>
                         <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
@@ -312,7 +323,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                         </TableCell>
                         <TableCell>
                           {a.email && a.status !== 'sent' && a.status !== 'sending' && (
-                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, idx)} disabled={sending}>
+                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
                           )}
