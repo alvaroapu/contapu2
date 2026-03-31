@@ -22,7 +22,6 @@ export function exportLiquidationExcel(items: LiquidationItem[], liquidation: Li
   let grandTotal = { dU: 0, dA: 0, oU: 0, oA: 0, sU: 0, sA: 0, t: 0 };
 
   for (const [author, authorItems] of [...byAuthor.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    let subtotal = { dU: 0, dA: 0, oU: 0, oA: 0, sU: 0, sA: 0, t: 0 };
     for (const i of authorItems) {
       rows.push([
         author, i.book_title, i.publication_date ?? '',
@@ -31,16 +30,11 @@ export function exportLiquidationExcel(items: LiquidationItem[], liquidation: Li
         i.school_units, i.school_amount,
         i.total_amount,
       ]);
-      subtotal.dU += i.distributor_units; subtotal.dA += i.distributor_amount;
-      subtotal.oU += i.online_units; subtotal.oA += i.online_amount;
-      subtotal.sU += i.school_units; subtotal.sA += i.school_amount;
-      subtotal.t += i.total_amount;
+      grandTotal.dU += i.distributor_units; grandTotal.dA += i.distributor_amount;
+      grandTotal.oU += i.online_units; grandTotal.oA += i.online_amount;
+      grandTotal.sU += i.school_units; grandTotal.sA += i.school_amount;
+      grandTotal.t += i.total_amount;
     }
-    rows.push([`SUBTOTAL ${author}`, '', '', subtotal.dU, subtotal.dA, subtotal.oU, subtotal.oA, subtotal.sU, subtotal.sA, subtotal.t]);
-    grandTotal.dU += subtotal.dU; grandTotal.dA += subtotal.dA;
-    grandTotal.oU += subtotal.oU; grandTotal.oA += subtotal.oA;
-    grandTotal.sU += subtotal.sU; grandTotal.sA += subtotal.sA;
-    grandTotal.t += subtotal.t;
   }
 
   rows.push(['TOTAL GENERAL', '', '', grandTotal.dU, grandTotal.dA, grandTotal.oU, grandTotal.oA, grandTotal.sU, grandTotal.sA, grandTotal.t]);
