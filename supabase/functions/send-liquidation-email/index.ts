@@ -10,8 +10,8 @@ const corsHeaders = {
 async function convertDocxToPdf(docxBuffer: ArrayBuffer): Promise<ArrayBuffer> {
   const gotenbergUrl = Deno.env.get("GOTENBERG_URL") ||
     "https://apuleyo-gotenberg.opxlub.easypanel.host/forms/libreoffice/convert";
-  const gotenbergUser = Deno.env.get("GOTENBERG_USERNAME") || "apuleyo";
-  const gotenbergPass = Deno.env.get("GOTENBERG_PASSWORD") || "";
+  const gotenbergUser = Deno.env.get("GOTENBERG_API_BASIC_AUTH_USERNAME") || "apuleyo";
+  const gotenbergPass = Deno.env.get("GOTENBERG_API_BASIC_AUTH_PASSWORD") || "";
 
   const form = new FormData();
   form.append(
