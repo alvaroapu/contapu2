@@ -274,15 +274,6 @@ export default function LiquidacionDetalle() {
             </TableHeader>
             <TableBody>
               {grouped.map(({ author, books }) => {
-                const subtotal = books.reduce(
-                  (acc, i) => ({
-                    dU: acc.dU + i.distributor_units, dA: acc.dA + i.distributor_amount,
-                    oU: acc.oU + i.online_units, oA: acc.oA + i.online_amount,
-                    sU: acc.sU + i.school_units, sA: acc.sA + i.school_amount,
-                    t: acc.t + i.total_amount,
-                  }),
-                  { dU: 0, dA: 0, oU: 0, oA: 0, sU: 0, sA: 0, t: 0 }
-                );
                 return (
                   <>
                     {books.map((item, idx) => (
@@ -341,20 +332,6 @@ export default function LiquidacionDetalle() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {/* Subtotal row */}
-                    <TableRow className="bg-muted/50 font-medium">
-                      <TableCell>Subtotal {author}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-right">{subtotal.dU}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(subtotal.dA)}</TableCell>
-                      <TableCell className="text-right">{subtotal.oU}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(subtotal.oA)}</TableCell>
-                      <TableCell className="text-right">{subtotal.sU}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(subtotal.sA)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(subtotal.t)}</TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
                   </>
                 );
               })}
