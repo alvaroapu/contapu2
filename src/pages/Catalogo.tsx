@@ -58,11 +58,12 @@ export default function Catalogo() {
     status: statusFilter,
     author: authorFilter,
     missingIsbn,
+    missingEmail,
     page,
     pageSize,
     sortColumn,
     sortDirection,
-  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, pageSize, sortColumn, sortDirection]);
+  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, missingEmail, page, pageSize, sortColumn, sortDirection]);
 
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
