@@ -153,14 +153,15 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     return text.replace(/\{autor\}/gi, author);
   };
 
-  const sendEmail = async (authorData: AuthorEmail, idx: number) => {
+  const sendEmail = async (authorData: AuthorEmail, idx: number, batchNum?: number): Promise<boolean> => {
     setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sending' } : a));
+    const now = new Date().toLocaleTimeString('es-ES');
 
     try {
       const blob = await generateAuthorDOCX(authorData.author, allItems, liquidation);
       const sanitizedName = authorData.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
         .replace(/_+/g, '_');
       const fileName = `${liquidation.year}/${sanitizedName}.docx`;
 
@@ -192,27 +193,47 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       if (error) throw error;
 
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sent' } : a));
+      setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'sent', batch: batchNum ?? 0 }]);
+      return true;
     } catch (err: any) {
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'error', error: err.message } : a));
+      setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'error', error: err.message, batch: batchNum ?? 0 }]);
+      return false;
     }
   };
 
   const handleSendAll = async () => {
     setSending(true);
+    setSendLog([]);
+    setActiveTab('log');
     const BATCH_SIZE = 10;
-    const BATCH_DELAY_MS = 500;
+    const BATCH_DELAY_MS = 3000;
+    const EMAIL_DELAY_MS = 500;
 
     const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
       .filter(a => a.email && a.status !== 'sent');
 
+    const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
+
     for (let i = 0; i < toSend.length; i += BATCH_SIZE) {
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
       const batch = toSend.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(a => sendEmail(a, a.idx)));
+      setSendProgress(`Lote ${batchNum}/${totalBatches} — enviando ${batch.length} emails…`);
+
+      // Send one by one within batch to avoid overloading SMTP
+      for (const a of batch) {
+        await sendEmail(a, a.idx, batchNum);
+        await new Promise(r => setTimeout(r, EMAIL_DELAY_MS));
+      }
+
+      // Pause between batches
       if (i + BATCH_SIZE < toSend.length) {
+        setSendProgress(`Lote ${batchNum}/${totalBatches} completado. Esperando ${BATCH_DELAY_MS / 1000}s antes del siguiente lote…`);
         await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
       }
     }
+    setSendProgress('');
     setSending(false);
     toast.success('Proceso completado');
   };
