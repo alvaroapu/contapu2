@@ -59,8 +59,8 @@ function buildBoxContent(
       `<w:r><w:t xml:space="preserve">- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}</w:t></w:r></w:p>`;
   }
 
-  // TOTAL line
-  const total = authorItems.reduce((s, i) => s + i.total_amount, 0);
+  // TOTAL line (clamp to 0 — authors should never see negative totals)
+  const total = Math.max(0, authorItems.reduce((s, i) => s + i.total_amount, 0));
   xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/><w:rPr><w:b/><w:u w:val="single"/></w:rPr></w:pPr>` +
     `<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">TOTAL: </w:t></w:r>` +
     `<w:r><w:rPr><w:i/></w:rPr><w:t>${formatEur(total)}</w:t></w:r></w:p>`;
