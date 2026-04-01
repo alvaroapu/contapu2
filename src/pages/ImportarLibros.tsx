@@ -595,6 +595,83 @@ export default function ImportarLibros() {
           </div>
         </>
       )}
+
+      {/* Import History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" /> Historial de importaciones
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {importHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No hay importaciones registradas</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Archivo</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Libros creados</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {importHistory.map(batch => (
+                    <TableRow key={batch.id} className={batch.reverted ? 'opacity-50' : ''}>
+                      <TableCell className="text-sm font-medium">{batch.file_name}</TableCell>
+                      <TableCell className="text-sm">{formatDate(batch.imported_at)}</TableCell>
+                      <TableCell className="text-sm">{batch.books_created}</TableCell>
+                      <TableCell>
+                        {batch.reverted ? (
+                          <Badge variant="secondary">Revertida</Badge>
+                        ) : (
+                          <Badge variant="default">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Importada
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {!batch.reverted && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={revertingBatchId === batch.id}
+                              >
+                                <Undo2 className="mr-1 h-3 w-3" />
+                                {revertingBatchId === batch.id ? 'Revirtiendo…' : 'Revertir'}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Revertir esta importación?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Se eliminarán los {batch.books_created} libros creados en la importación de "{batch.file_name}".
+                                  Los libros que tengan ventas asociadas no podrán eliminarse.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleRevertBatch(batch.id)}>
+                                  Revertir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
