@@ -39,6 +39,14 @@ function buildBoxContent(
   xml += `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr></w:p>`;
 
   for (const item of authorItems) {
+    // Clamp negative values to 0 — authors should never see negative sales
+    const distUnits = Math.max(0, item.distributor_units);
+    const distAmount = Math.max(0, item.distributor_amount);
+    const onlineUnits = Math.max(0, item.online_units);
+    const onlineAmount = Math.max(0, item.online_amount);
+    const schoolUnits = Math.max(0, item.school_units);
+    const schoolAmount = Math.max(0, item.school_amount);
+
     // "- Título: [title]"
     xml += `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="108"/><w:jc w:val="both"/></w:pPr>` +
       `<w:r><w:t xml:space="preserve">- Título: ${escapeXml(item.book_title)}</w:t></w:r></w:p>`;
@@ -48,15 +56,15 @@ function buildBoxContent(
 
     // Distributor sales
     xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108" w:firstLine="708"/><w:jc w:val="both"/></w:pPr>` +
-      `<w:r><w:t xml:space="preserve">- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${item.distributor_units} ejemplares: ${formatEur(item.distributor_amount)}</w:t></w:r></w:p>`;
+      `<w:r><w:t xml:space="preserve">- Venta en librerías (beneficio del ${liq.distributor_royalty_pct}% por ejemplar):  ${distUnits} ejemplares: ${formatEur(distAmount)}</w:t></w:r></w:p>`;
 
     // Online sales
     xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108" w:firstLine="708"/><w:jc w:val="both"/></w:pPr>` +
-      `<w:r><w:t xml:space="preserve">- Venta en nuestra web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${item.online_units} ejemplares: ${formatEur(item.online_amount)}</w:t></w:r></w:p>`;
+      `<w:r><w:t xml:space="preserve">- Venta en nuestra web (beneficio del ${liq.online_royalty_pct}% por ejemplar):  ${onlineUnits} ejemplares: ${formatEur(onlineAmount)}</w:t></w:r></w:p>`;
 
     // School/institution sales
     xml += `<w:p><w:pPr><w:spacing w:after="200" w:line="276" w:lineRule="auto"/><w:ind w:left="108" w:firstLine="708"/><w:jc w:val="both"/></w:pPr>` +
-      `<w:r><w:t xml:space="preserve">- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${item.school_units} ejemplares: ${formatEur(item.school_amount)}</w:t></w:r></w:p>`;
+      `<w:r><w:t xml:space="preserve">- Venta en instituciones (beneficio del ${liq.school_royalty_pct}% por ejemplar): ${schoolUnits} ejemplares: ${formatEur(schoolAmount)}</w:t></w:r></w:p>`;
   }
 
   // TOTAL line (clamp to 0 — authors should never see negative totals)
