@@ -360,9 +360,10 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="message">✏️ Mensaje</TabsTrigger>
               <TabsTrigger value="recipients">📧 Destinatarios ({withEmail.length})</TabsTrigger>
+              <TabsTrigger value="log">📋 Log {sendLog.length > 0 && `(${sendLog.length})`}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="message" className="space-y-4 mt-4">
