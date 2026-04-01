@@ -38,6 +38,7 @@ export default function LiquidacionDetalle() {
   const [search, setSearch] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
   const [onlyWithSales, setOnlyWithSales] = useState(false);
+  const [hideNegatives, setHideNegatives] = useState(false);
   const [page, setPage] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
   const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page);
@@ -57,14 +58,15 @@ export default function LiquidacionDetalle() {
   // Group items by author for display
   const grouped = useMemo(() => {
     if (!items) return [];
+    const filtered = hideNegatives ? items.filter(i => i.total_amount >= 0) : items;
     const map = new Map<string, LiquidationItem[]>();
-    for (const item of items) {
+    for (const item of filtered) {
       const list = map.get(item.author) ?? [];
       list.push(item);
       map.set(item.author, list);
     }
     return [...map.entries()].map(([author, books]) => ({ author, books }));
-  }, [items]);
+  }, [items, hideNegatives]);
 
   // Summary
   const summary = useMemo(() => {
@@ -261,6 +263,10 @@ export default function LiquidacionDetalle() {
         <div className="flex items-center gap-2">
           <Switch checked={onlyWithSales} onCheckedChange={v => { setOnlyWithSales(v); setPage(0); }} />
           <Label className="text-sm">Solo con ventas</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch checked={hideNegatives} onCheckedChange={setHideNegatives} />
+          <Label className="text-sm">Ocultar negativos</Label>
         </div>
       </div>
 
