@@ -180,7 +180,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     const now = new Date().toLocaleTimeString('es-ES');
 
     try {
-      const blob = await generateAuthorDOCX(authorData.author, allItems, liquidation);
+      const blob = await generateAuthorDOCX(authorData.author, filteredItems, liquidation);
       const sanitizedName = authorData.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -268,7 +268,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
     setTestingPdf(true);
     try {
-      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const blob = await generateAuthorDOCX(firstAuthor.author, filteredItems, liquidation);
       const sanitizedName = firstAuthor.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -323,7 +323,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
     setSendingTest(true);
     try {
-      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const blob = await generateAuthorDOCX(firstAuthor.author, filteredItems, liquidation);
       const sanitizedName = firstAuthor.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_-]/g, '_')
