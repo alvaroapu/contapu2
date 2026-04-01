@@ -58,7 +58,11 @@ export default function LiquidacionDetalle() {
   // Group items by author for display
   const grouped = useMemo(() => {
     if (!items) return [];
-    const filtered = hideNegatives ? items.filter(i => i.total_amount >= 0) : items;
+    const filtered = negativeFilter === 'hide'
+      ? items.filter(i => i.total_amount >= 0)
+      : negativeFilter === 'only'
+        ? items.filter(i => i.total_amount < 0)
+        : items;
     const map = new Map<string, LiquidationItem[]>();
     for (const item of filtered) {
       const list = map.get(item.author) ?? [];
@@ -66,7 +70,7 @@ export default function LiquidacionDetalle() {
       map.set(item.author, list);
     }
     return [...map.entries()].map(([author, books]) => ({ author, books }));
-  }, [items, hideNegatives]);
+  }, [items, negativeFilter]);
 
   // Summary
   const summary = useMemo(() => {
