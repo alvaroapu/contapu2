@@ -74,8 +74,27 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const loadAuthors = async () => {
     setLoading(true);
+
+    // Fetch active book IDs to exclude inactive books from email sending
+    const activeBookIds = new Set<string>();
+    let abFrom = 0;
+    while (true) {
+      const { data } = await supabase
+        .from('books')
+        .select('id')
+        .eq('status', 'active')
+        .range(abFrom, abFrom + 999);
+      if (!data || data.length === 0) break;
+      for (const b of data) activeBookIds.add(b.id);
+      if (data.length < 1000) break;
+      abFrom += 1000;
+    }
+
+    // Filter allItems to only active books
+    const activeItems = allItems.filter(item => activeBookIds.has(item.book_id));
+
     const authorMap = new Map<string, LiquidationItem[]>();
-    for (const item of allItems) {
+    for (const item of activeItems) {
       const list = authorMap.get(item.author) ?? [];
       list.push(item);
       authorMap.set(item.author, list);
@@ -88,6 +107,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       const { data } = await supabase
         .from('books')
         .select('author, author_email')
+        .eq('status', 'active')
         .in('author', authorNames.slice(from, from + 100));
       if (!data || data.length === 0) break;
       allBooks.push(...data);
