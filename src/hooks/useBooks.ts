@@ -23,6 +23,7 @@ export interface BookFilters {
   status: string;
   author: string;
   missingIsbn?: boolean;
+  missingEmail?: boolean;
   page: number;
   pageSize: number;
   sortColumn: string;
@@ -52,6 +53,10 @@ export function useBooks(filters: BookFilters) {
 
       if (filters.missingIsbn) {
         query = query.is('isbn', null);
+      }
+
+      if (filters.missingEmail) {
+        query = query.or('author_email.is.null,author_email.eq.');
       }
 
       const from = filters.page * filters.pageSize;

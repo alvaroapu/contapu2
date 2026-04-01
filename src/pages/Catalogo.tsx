@@ -29,6 +29,7 @@ export default function Catalogo() {
   const [statusFilter, setStatusFilter] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
   const [missingIsbn, setMissingIsbn] = useState(false);
+  const [missingEmail, setMissingEmail] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [sortColumn, setSortColumn] = useState('title');
@@ -57,11 +58,12 @@ export default function Catalogo() {
     status: statusFilter,
     author: authorFilter,
     missingIsbn,
+    missingEmail,
     page,
     pageSize,
     sortColumn,
     sortDirection,
-  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, page, pageSize, sortColumn, sortDirection]);
+  }), [debouncedSearch, statusFilter, authorFilter, missingIsbn, missingEmail, page, pageSize, sortColumn, sortDirection]);
 
   const { data, isLoading } = useBooks(filters);
   const books = data?.data ?? [];
@@ -181,6 +183,14 @@ export default function Catalogo() {
           className="whitespace-nowrap"
         >
           Sin ISBN
+        </Button>
+        <Button
+          variant={missingEmail ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setMissingEmail(v => !v); setPage(0); }}
+          className="whitespace-nowrap"
+        >
+          Sin email
         </Button>
       </div>
 
