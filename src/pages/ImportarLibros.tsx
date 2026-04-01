@@ -232,7 +232,7 @@ export default function ImportarLibros() {
 
     // Create import batch record
     const { data: batchData } = await supabase.from('book_import_batches').insert({
-      file_name: file?.name ?? 'Sin nombre',
+      file_name: files.map(f => f.name).join(', ') || 'Sin nombre',
       books_created: 0,
     } as any).select('id').single();
     const batchId = batchData?.id;
