@@ -1,4 +1,4 @@
-import { LayoutDashboard, BookOpen, BarChart3, Upload, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, BarChart3, Upload, FileText, LogOut, BookPlus } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -19,7 +19,8 @@ const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Catálogo', url: '/catalogo', icon: BookOpen },
   { title: 'Ventas', url: '/ventas', icon: BarChart3 },
-  { title: 'Importar', url: '/importar', icon: Upload },
+  { title: 'Importar Reportes', url: '/importar', icon: Upload },
+  { title: 'Importar Libros', url: '/importar-libros', icon: BookPlus },
   { title: 'Liquidaciones', url: '/liquidaciones', icon: FileText },
 ];
 
