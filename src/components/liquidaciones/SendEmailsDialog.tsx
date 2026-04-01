@@ -361,8 +361,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
   };
 
-  const withEmail = authors.filter(a => a.email);
+  const withEmail = authors.filter(a => a.email && a.total > 0);
   const withoutEmail = authors.filter(a => !a.email);
+  const excludedNegative = authors.filter(a => a.email && a.total <= 0);
   const sentCount = authors.filter(a => a.status === 'sent').length;
   const errorCount = authors.filter(a => a.status === 'error').length;
 
