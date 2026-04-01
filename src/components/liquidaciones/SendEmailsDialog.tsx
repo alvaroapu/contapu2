@@ -232,9 +232,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     const BATCH_DELAY_MS = 3000;
     const EMAIL_DELAY_MS = 500;
 
-    const toSend = authors
+  const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
-      .filter(a => a.email && a.status !== 'sent');
+      .filter(a => a.email && a.status !== 'sent' && a.total > 0);
 
     const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
 
