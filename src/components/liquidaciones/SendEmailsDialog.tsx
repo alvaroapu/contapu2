@@ -487,6 +487,64 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                 </Table>
               </div>
             </TabsContent>
+
+            <TabsContent value="log" className="mt-4 space-y-3">
+              {sendProgress && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {sendProgress}
+                </div>
+              )}
+
+              {sendLog.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  El log de envío aparecerá aquí cuando inicies el envío masivo.
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-3 text-sm flex-wrap">
+                    <Badge variant="default">{sendLog.filter(l => l.status === 'sent').length} enviados</Badge>
+                    {sendLog.filter(l => l.status === 'error').length > 0 && (
+                      <Badge variant="destructive">{sendLog.filter(l => l.status === 'error').length} con error</Badge>
+                    )}
+                  </div>
+                  <div className="rounded-md border max-h-[45vh] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">Hora</TableHead>
+                          <TableHead className="w-16">Lote</TableHead>
+                          <TableHead>Autor</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Error</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sendLog.map((entry, idx) => (
+                          <TableRow key={idx} className={entry.status === 'error' ? 'bg-destructive/10' : ''}>
+                            <TableCell className="text-xs font-mono">{entry.timestamp}</TableCell>
+                            <TableCell className="text-xs text-center">{entry.batch}</TableCell>
+                            <TableCell className="text-sm font-medium">{entry.author}</TableCell>
+                            <TableCell className="text-sm">{entry.email}</TableCell>
+                            <TableCell>
+                              {entry.status === 'sent' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-destructive" />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-destructive max-w-[200px] truncate" title={entry.error}>
+                              {entry.error ?? '—'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </TabsContent>
           </Tabs>
         )}
 
