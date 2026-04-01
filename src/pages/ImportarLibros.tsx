@@ -106,6 +106,18 @@ export default function ImportarLibros() {
   const [editAuthor, setEditAuthor] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [reverting, setReverting] = useState(false);
+  const [importHistory, setImportHistory] = useState<ImportBatch[]>([]);
+  const [revertingBatchId, setRevertingBatchId] = useState<string | null>(null);
+
+  useEffect(() => { loadHistory(); }, []);
+
+  async function loadHistory() {
+    const { data } = await supabase.from('book_import_batches')
+      .select('*')
+      .order('imported_at', { ascending: false })
+      .limit(50) as { data: ImportBatch[] | null };
+    setImportHistory(data ?? []);
+  }
 
   async function handleParse() {
     if (!file) return;
