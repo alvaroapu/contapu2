@@ -50,6 +50,8 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [activeTab, setActiveTab] = useState('message');
   const [testingPdf, setTestingPdf] = useState(false);
   const [authorSearch, setAuthorSearch] = useState('');
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
 
   useEffect(() => {
     if (!open) return;
