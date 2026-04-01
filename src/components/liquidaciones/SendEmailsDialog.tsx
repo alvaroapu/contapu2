@@ -476,7 +476,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                         </TableCell>
                         <TableCell>
                           {a.email && a.status !== 'sent' && a.status !== 'sending' && (
-                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx)} disabled={sending}>
+                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx, 0)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
                           )}
