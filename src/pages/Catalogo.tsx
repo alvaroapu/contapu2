@@ -184,6 +184,14 @@ export default function Catalogo() {
         >
           Sin ISBN
         </Button>
+        <Button
+          variant={missingEmail ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setMissingEmail(v => !v); setPage(0); }}
+          className="whitespace-nowrap"
+        >
+          Sin email
+        </Button>
       </div>
 
       {/* Table */}

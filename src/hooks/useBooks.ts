@@ -55,6 +55,10 @@ export function useBooks(filters: BookFilters) {
         query = query.is('isbn', null);
       }
 
+      if (filters.missingEmail) {
+        query = query.or('author_email.is.null,author_email.eq.');
+      }
+
       const from = filters.page * filters.pageSize;
       const to = from + filters.pageSize - 1;
 
