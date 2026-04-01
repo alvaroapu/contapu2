@@ -29,6 +29,15 @@ interface AuthorEmail {
   bookCount: number;
 }
 
+interface LogEntry {
+  timestamp: string;
+  author: string;
+  email: string;
+  status: 'sent' | 'error';
+  error?: string;
+  batch: number;
+}
+
 function formatEur(val: number): string {
   return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' €';
 }
@@ -52,6 +61,8 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [authorSearch, setAuthorSearch] = useState('');
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  const [sendLog, setSendLog] = useState<LogEntry[]>([]);
+  const [sendProgress, setSendProgress] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -142,14 +153,15 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     return text.replace(/\{autor\}/gi, author);
   };
 
-  const sendEmail = async (authorData: AuthorEmail, idx: number) => {
+  const sendEmail = async (authorData: AuthorEmail, idx: number, batchNum?: number): Promise<boolean> => {
     setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sending' } : a));
+    const now = new Date().toLocaleTimeString('es-ES');
 
     try {
       const blob = await generateAuthorDOCX(authorData.author, allItems, liquidation);
       const sanitizedName = authorData.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
         .replace(/_+/g, '_');
       const fileName = `${liquidation.year}/${sanitizedName}.docx`;
 
@@ -181,27 +193,47 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       if (error) throw error;
 
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sent' } : a));
+      setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'sent', batch: batchNum ?? 0 }]);
+      return true;
     } catch (err: any) {
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'error', error: err.message } : a));
+      setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'error', error: err.message, batch: batchNum ?? 0 }]);
+      return false;
     }
   };
 
   const handleSendAll = async () => {
     setSending(true);
+    setSendLog([]);
+    setActiveTab('log');
     const BATCH_SIZE = 10;
-    const BATCH_DELAY_MS = 500;
+    const BATCH_DELAY_MS = 3000;
+    const EMAIL_DELAY_MS = 500;
 
     const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
       .filter(a => a.email && a.status !== 'sent');
 
+    const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
+
     for (let i = 0; i < toSend.length; i += BATCH_SIZE) {
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
       const batch = toSend.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(a => sendEmail(a, a.idx)));
+      setSendProgress(`Lote ${batchNum}/${totalBatches} — enviando ${batch.length} emails…`);
+
+      // Send one by one within batch to avoid overloading SMTP
+      for (const a of batch) {
+        await sendEmail(a, a.idx, batchNum);
+        await new Promise(r => setTimeout(r, EMAIL_DELAY_MS));
+      }
+
+      // Pause between batches
       if (i + BATCH_SIZE < toSend.length) {
+        setSendProgress(`Lote ${batchNum}/${totalBatches} completado. Esperando ${BATCH_DELAY_MS / 1000}s antes del siguiente lote…`);
         await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
       }
     }
+    setSendProgress('');
     setSending(false);
     toast.success('Proceso completado');
   };
@@ -328,9 +360,10 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="message">✏️ Mensaje</TabsTrigger>
               <TabsTrigger value="recipients">📧 Destinatarios ({withEmail.length})</TabsTrigger>
+              <TabsTrigger value="log">📋 Log {sendLog.length > 0 && `(${sendLog.length})`}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="message" className="space-y-4 mt-4">
@@ -443,7 +476,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                         </TableCell>
                         <TableCell>
                           {a.email && a.status !== 'sent' && a.status !== 'sending' && (
-                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx)} disabled={sending}>
+                            <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx, 0)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
                           )}
@@ -453,6 +486,64 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                   </TableBody>
                 </Table>
               </div>
+            </TabsContent>
+
+            <TabsContent value="log" className="mt-4 space-y-3">
+              {sendProgress && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {sendProgress}
+                </div>
+              )}
+
+              {sendLog.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  El log de envío aparecerá aquí cuando inicies el envío masivo.
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-3 text-sm flex-wrap">
+                    <Badge variant="default">{sendLog.filter(l => l.status === 'sent').length} enviados</Badge>
+                    {sendLog.filter(l => l.status === 'error').length > 0 && (
+                      <Badge variant="destructive">{sendLog.filter(l => l.status === 'error').length} con error</Badge>
+                    )}
+                  </div>
+                  <div className="rounded-md border max-h-[45vh] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">Hora</TableHead>
+                          <TableHead className="w-16">Lote</TableHead>
+                          <TableHead>Autor</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Error</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sendLog.map((entry, idx) => (
+                          <TableRow key={idx} className={entry.status === 'error' ? 'bg-destructive/10' : ''}>
+                            <TableCell className="text-xs font-mono">{entry.timestamp}</TableCell>
+                            <TableCell className="text-xs text-center">{entry.batch}</TableCell>
+                            <TableCell className="text-sm font-medium">{entry.author}</TableCell>
+                            <TableCell className="text-sm">{entry.email}</TableCell>
+                            <TableCell>
+                              {entry.status === 'sent' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-destructive" />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-destructive max-w-[200px] truncate" title={entry.error}>
+                              {entry.error ?? '—'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         )}
