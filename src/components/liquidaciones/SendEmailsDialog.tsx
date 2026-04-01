@@ -554,7 +554,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                           )}
                         </TableCell>
                       </TableRow>
-                    );})
+                    )})
                   </TableBody>
                 </Table>
               </div>
