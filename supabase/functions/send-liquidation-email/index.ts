@@ -164,15 +164,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send via SMTP (IONOS)
+    // Send via SMTP (IONOS) - port 465 with direct TLS
     const client = new SMTPClient({
       connection: {
         hostname: "smtp.ionos.es",
-        port: 587,
+        port: 465,
         tls: true,
         auth: {
           username: smtpUser,
           password: smtpPass,
+        },
         },
       },
     });
