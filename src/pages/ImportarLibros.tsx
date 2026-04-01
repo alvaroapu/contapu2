@@ -18,6 +18,7 @@ interface ParsedBook {
   selected: boolean;
   status: 'pending' | 'exists' | 'created' | 'error';
   existingId?: string;
+  createdId?: string;
   error?: string;
 }
 
