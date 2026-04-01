@@ -120,21 +120,33 @@ export default function ImportarLibros() {
   }
 
   async function handleParse() {
-    if (!file) return;
+    if (files.length === 0) return;
     setParsing(true);
     try {
-      const parsed = await parseDocxBooks(file);
-      if (parsed.length === 0) {
-        toast.error('No se encontraron libros en el archivo');
+      const allBooks: ParsedBook[] = [];
+      const seen = new Set<string>();
+
+      for (const f of files) {
+        const parsed = await parseDocxBooks(f);
+        for (const book of parsed) {
+          const key = `${book.author.toLowerCase()}::${book.title.toLowerCase()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allBooks.push(book);
+          }
+        }
+      }
+
+      if (allBooks.length === 0) {
+        toast.error('No se encontraron libros en los archivos');
         setParsing(false);
         return;
       }
-      setBooks(parsed);
-      toast.success(`${parsed.length} libros encontrados. Comprobando duplicados…`);
-      // Automatically check for fuzzy matches
-      await checkFuzzyMatches(parsed);
+      setBooks(allBooks);
+      toast.success(`${allBooks.length} libros encontrados en ${files.length} archivo(s). Comprobando duplicados…`);
+      await checkFuzzyMatches(allBooks);
     } catch (err: any) {
-      toast.error('Error al leer el archivo: ' + err.message);
+      toast.error('Error al leer los archivos: ' + err.message);
     } finally {
       setParsing(false);
     }
