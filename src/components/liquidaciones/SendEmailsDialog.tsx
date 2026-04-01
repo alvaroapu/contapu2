@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, FileDown, Search, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -64,6 +65,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [sendingTest, setSendingTest] = useState(false);
   const [sendLog, setSendLog] = useState<LogEntry[]>([]);
   const [sendProgress, setSendProgress] = useState('');
+  const [excludedAuthors, setExcludedAuthors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -234,7 +236,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
-      .filter(a => a.email && a.status !== 'sent' && a.total > 0);
+      .filter(a => a.email && a.status !== 'sent' && a.total > 0 && !excludedAuthors.has(a.author));
 
     const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
 
@@ -361,11 +363,36 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
   };
 
+  const sendableAuthors = authors.filter(a => a.email && a.total > 0 && !excludedAuthors.has(a.author));
   const withEmail = authors.filter(a => a.email && a.total > 0);
   const withoutEmail = authors.filter(a => !a.email);
   const excludedNegative = authors.filter(a => a.email && a.total <= 0);
+  const manuallyExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
   const sentCount = authors.filter(a => a.status === 'sent').length;
   const errorCount = authors.filter(a => a.status === 'error').length;
+
+  const toggleExclude = (author: string) => {
+    setExcludedAuthors(prev => {
+      const next = new Set(prev);
+      if (next.has(author)) next.delete(author);
+      else next.add(author);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = (include: boolean) => {
+    const visibleAuthors = authors
+      .filter(a => a.email && a.total > 0 && a.status !== 'sent')
+      .filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase()));
+    setExcludedAuthors(prev => {
+      const next = new Set(prev);
+      for (const a of visibleAuthors) {
+        if (include) next.delete(a.author);
+        else next.add(a.author);
+      }
+      return next;
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -385,7 +412,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="message">✏️ Mensaje</TabsTrigger>
-              <TabsTrigger value="recipients">📧 Destinatarios ({withEmail.length})</TabsTrigger>
+              <TabsTrigger value="recipients">📧 Destinatarios ({sendableAuthors.length})</TabsTrigger>
               <TabsTrigger value="log">📋 Log {sendLog.length > 0 && `(${sendLog.length})`}</TabsTrigger>
             </TabsList>
 
@@ -450,8 +477,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
             </TabsContent>
 
             <TabsContent value="recipients" className="mt-4 space-y-3">
-              <div className="flex gap-3 text-sm flex-wrap">
-                <Badge variant="default">{withEmail.length} con email</Badge>
+              <div className="flex gap-3 text-sm flex-wrap items-center">
+                <Badge variant="default">{sendableAuthors.length} a enviar</Badge>
+                {manuallyExcluded.length > 0 && <Badge variant="secondary">{manuallyExcluded.length} excluidos manual</Badge>}
                 {withoutEmail.length > 0 && <Badge variant="secondary">{withoutEmail.length} sin email</Badge>}
                 {excludedNegative.length > 0 && <Badge variant="outline" className="border-orange-400 text-orange-600">{excludedNegative.length} excluidos (≤0€)</Badge>}
                 {sentCount > 0 && <Badge className="bg-green-600">{sentCount} enviados</Badge>}
@@ -471,7 +499,13 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               <div className="rounded-md border max-h-[45vh] overflow-y-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={withEmail.filter(a => a.status !== 'sent').every(a => !excludedAuthors.has(a.author))}
+                          onCheckedChange={(checked) => toggleAllVisible(!!checked)}
+                        />
+                      </TableHead>
                       <TableHead>Autor</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead className="text-right">Libros</TableHead>
@@ -481,15 +515,28 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => (
-                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : a.total <= 0 ? 'bg-orange-50 opacity-70' : ''}>
+                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => {
+                      const isNegativeExcluded = a.email && a.total <= 0;
+                      const isManuallyExcluded = a.email && a.total > 0 && excludedAuthors.has(a.author);
+                      const canSend = a.email && a.total > 0 && !excludedAuthors.has(a.author);
+                      return (
+                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : isNegativeExcluded ? 'bg-orange-50 opacity-70' : isManuallyExcluded ? 'opacity-50' : ''}>
+                        <TableCell>
+                          {a.email && a.total > 0 && a.status !== 'sent' ? (
+                            <Checkbox
+                              checked={!excludedAuthors.has(a.author)}
+                              onCheckedChange={() => toggleExclude(a.author)}
+                            />
+                          ) : null}
+                        </TableCell>
                         <TableCell className="font-medium text-sm">{a.author}</TableCell>
                         <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
                         <TableCell className="text-right text-sm">{a.bookCount}</TableCell>
                         <TableCell className="text-right text-sm">{formatEur(a.total)}</TableCell>
                         <TableCell>
-                          {a.email && a.total <= 0 && <Badge variant="outline" className="border-orange-400 text-orange-600 text-xs">Excluido</Badge>}
-                          {a.status === 'pending' && a.email && a.total > 0 && <Badge variant="secondary">Pendiente</Badge>}
+                          {isNegativeExcluded && <Badge variant="outline" className="border-orange-400 text-orange-600 text-xs">≤0€</Badge>}
+                          {isManuallyExcluded && <Badge variant="outline" className="text-xs">Excluido</Badge>}
+                          {a.status === 'pending' && canSend && <Badge variant="secondary">Pendiente</Badge>}
                           {a.status === 'sending' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                           {a.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                           {a.status === 'error' && (
@@ -500,14 +547,15 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                           {!a.email && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
                         </TableCell>
                         <TableCell>
-                          {a.email && a.total > 0 && a.status !== 'sent' && a.status !== 'sending' && (
+                          {canSend && a.status !== 'sent' && a.status !== 'sending' && (
                             <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx, 0)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -600,9 +648,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
               Probar PDF
             </Button>
-            <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
+            <Button onClick={handleSendAll} disabled={sending || sendableAuthors.length === 0 || sentCount === sendableAuthors.length}>
               {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar a {withEmail.length - sentCount} autor(es)
+              Enviar a {sendableAuthors.filter(a => a.status !== 'sent').length} autor(es)
             </Button>
           </div>
         </div>
