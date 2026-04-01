@@ -38,7 +38,7 @@ export default function LiquidacionDetalle() {
   const [search, setSearch] = useState('');
   const [authorFilter, setAuthorFilter] = useState('');
   const [onlyWithSales, setOnlyWithSales] = useState(false);
-  const [hideNegatives, setHideNegatives] = useState(false);
+  const [negativeFilter, setNegativeFilter] = useState<'all' | 'only' | 'hide'>('all');
   const [page, setPage] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
   const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page);
@@ -58,7 +58,11 @@ export default function LiquidacionDetalle() {
   // Group items by author for display
   const grouped = useMemo(() => {
     if (!items) return [];
-    const filtered = hideNegatives ? items.filter(i => i.total_amount >= 0) : items;
+    const filtered = negativeFilter === 'hide'
+      ? items.filter(i => i.total_amount >= 0)
+      : negativeFilter === 'only'
+        ? items.filter(i => i.total_amount < 0)
+        : items;
     const map = new Map<string, LiquidationItem[]>();
     for (const item of filtered) {
       const list = map.get(item.author) ?? [];
@@ -66,7 +70,7 @@ export default function LiquidacionDetalle() {
       map.set(item.author, list);
     }
     return [...map.entries()].map(([author, books]) => ({ author, books }));
-  }, [items, hideNegatives]);
+  }, [items, negativeFilter]);
 
   // Summary
   const summary = useMemo(() => {
@@ -264,9 +268,15 @@ export default function LiquidacionDetalle() {
           <Switch checked={onlyWithSales} onCheckedChange={v => { setOnlyWithSales(v); setPage(0); }} />
           <Label className="text-sm">Solo con ventas</Label>
         </div>
-        <div className="flex items-center gap-2">
-          <Switch checked={hideNegatives} onCheckedChange={setHideNegatives} />
-          <Label className="text-sm">Ocultar negativos</Label>
+        <div className="w-44">
+          <Select value={negativeFilter} onValueChange={v => setNegativeFilter(v as 'all' | 'only' | 'hide')}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los importes</SelectItem>
+              <SelectItem value="hide">Ocultar negativos</SelectItem>
+              <SelectItem value="only">Solo negativos</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
