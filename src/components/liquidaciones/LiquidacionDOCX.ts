@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { supabase } from '@/integrations/supabase/client';
 import type { Liquidation, LiquidationItem } from '@/hooks/useLiquidations';
 
 function formatEur(val: number): string {
@@ -295,6 +296,70 @@ export async function downloadAuthorDOCX(
   const a = document.createElement('a');
   a.href = url;
   a.download = `Liquidacion_${liquidation.year}_${author.replace(/\s+/g, '_')}.docx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function sanitizeAuthorName(author: string): string {
+  return author
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_\-]/g, '_')
+    .replace(/_+/g, '_');
+}
+
+/**
+ * Convert a DOCX blob to PDF via the Gotenberg edge function.
+ * Uploads the DOCX to storage, calls the edge function with testOnly=true,
+ * and returns the PDF as a Blob.
+ */
+export async function convertDocxToPdf(
+  docxBlob: Blob,
+  author: string,
+  liquidationYear: number,
+): Promise<{ pdfBlob: Blob; pdfFileName: string }> {
+  const sanitizedName = sanitizeAuthorName(author);
+  const fileName = `${liquidationYear}/${sanitizedName}.docx`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('liquidation-docs')
+    .upload(fileName, docxBlob, { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+
+  if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
+
+  const { data: urlData } = supabase.storage.from('liquidation-docs').getPublicUrl(fileName);
+
+  const { data, error } = await supabase.functions.invoke('send-liquidation-email', {
+    body: {
+      author,
+      liquidationYear,
+      docxUrl: urlData.publicUrl,
+      testOnly: true,
+    },
+  });
+
+  if (error) throw error;
+
+  const pdfBytes = Uint8Array.from(atob(data.pdfBase64), c => c.charCodeAt(0));
+  return {
+    pdfBlob: new Blob([pdfBytes], { type: 'application/pdf' }),
+    pdfFileName: data.pdfFileName,
+  };
+}
+
+/**
+ * Generate and download a single author's report as PDF.
+ */
+export async function downloadAuthorPDF(
+  author: string,
+  items: LiquidationItem[],
+  liquidation: Liquidation,
+) {
+  const docxBlob = await generateAuthorDOCX(author, items, liquidation);
+  const { pdfBlob, pdfFileName } = await convertDocxToPdf(docxBlob, author, liquidation.year);
+  const url = URL.createObjectURL(pdfBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = pdfFileName;
   a.click();
   URL.revokeObjectURL(url);
 }

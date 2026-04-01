@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { downloadAuthorDOCX, generateAuthorDOCX } from '@/components/liquidaciones/LiquidacionDOCX';
+import { downloadAuthorPDF, generateAuthorDOCX, convertDocxToPdf } from '@/components/liquidaciones/LiquidacionDOCX';
 import { exportLiquidationExcel } from '@/components/liquidaciones/LiquidacionExcel';
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
@@ -115,35 +115,53 @@ export default function LiquidacionDetalle() {
     exportLiquidationExcel(allItems, liq);
   };
 
-  const handleGenerateAllDOCX = async () => {
+  const handleGenerateAllPDF = async () => {
     if (!liq) return;
     setGenAllLoading(true);
     try {
       const allItems = await fetchAllLiquidationItems(liq.id);
       const authorsSet = [...new Set(allItems.map(i => i.author))].sort();
       const zip = new JSZip();
-      for (const author of authorsSet) {
-        const blob = await generateAuthorDOCX(author, allItems, liq);
-        zip.file(`Liquidacion_${liq.year}_${author.replace(/\s+/g, '_')}.docx`, blob);
+      const BATCH_SIZE = 10;
+      const BATCH_DELAY_MS = 500;
+
+      for (let i = 0; i < authorsSet.length; i += BATCH_SIZE) {
+        const batch = authorsSet.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(batch.map(async (author) => {
+          const docxBlob = await generateAuthorDOCX(author, allItems, liq);
+          const { pdfBlob, pdfFileName } = await convertDocxToPdf(docxBlob, author, liq.year);
+          return { pdfBlob, pdfFileName };
+        }));
+        for (const { pdfBlob, pdfFileName } of results) {
+          zip.file(pdfFileName, pdfBlob);
+        }
+        if (i + BATCH_SIZE < authorsSet.length) {
+          await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+        }
       }
+
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Liquidaciones_${liq.year}_DOCX.zip`;
+      a.download = `Liquidaciones_${liq.year}_PDF.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${authorsSet.length} documentos generados`);
+      toast.success(`${authorsSet.length} documentos PDF generados`);
     } catch (e: any) {
       toast.error(e.message);
     }
     setGenAllLoading(false);
   };
 
-  const handleDownloadAuthorDOCX = async (author: string) => {
+  const handleDownloadAuthorPDF = async (author: string) => {
     if (!liq) return;
-    const allItems = await fetchAllLiquidationItems(liq.id);
-    downloadAuthorDOCX(author, allItems, liq);
+    try {
+      const allItems = await fetchAllLiquidationItems(liq.id);
+      await downloadAuthorPDF(author, allItems, liq);
+    } catch (e: any) {
+      toast.error(`Error al generar PDF: ${e.message}`);
+    }
   };
 
   if (liqLoading) return <div className="space-y-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>;
@@ -186,7 +204,7 @@ export default function LiquidacionDetalle() {
           <Button variant="outline" size="sm" onClick={handleExportExcel}>
             <FileSpreadsheet className="mr-1 h-4 w-4" /> Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={handleGenerateAllDOCX} disabled={genAllLoading}>
+          <Button variant="outline" size="sm" onClick={handleGenerateAllPDF} disabled={genAllLoading}>
             {genAllLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
             Todos los informes
           </Button>
@@ -322,7 +340,7 @@ export default function LiquidacionDetalle() {
                           {idx === 0 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleDownloadAuthorDOCX(author)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleDownloadAuthorPDF(author)}>
                                   <Download className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
