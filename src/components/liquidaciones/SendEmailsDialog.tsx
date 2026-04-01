@@ -647,9 +647,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
               Probar PDF
             </Button>
-            <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
+            <Button onClick={handleSendAll} disabled={sending || sendableAuthors.length === 0 || sentCount === sendableAuthors.length}>
               {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar a {withEmail.length - sentCount} autor(es)
+              Enviar a {sendableAuthors.filter(a => a.status !== 'sent').length} autor(es)
             </Button>
           </div>
         </div>
