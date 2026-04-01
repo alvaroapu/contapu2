@@ -112,16 +112,24 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
     html += '<tr style="background:#1a56db;color:white;"><th style="padding:8px;text-align:left;">Título</th><th style="padding:8px;text-align:right;">Dist. Uds</th><th style="padding:8px;text-align:right;">Dist. €</th><th style="padding:8px;text-align:right;">Web Uds</th><th style="padding:8px;text-align:right;">Web €</th><th style="padding:8px;text-align:right;">Inst. Uds</th><th style="padding:8px;text-align:right;">Inst. €</th><th style="padding:8px;text-align:right;">Total €</th></tr>';
     for (const item of items) {
-      const bg = item.total_amount < 0 ? '#fff3f3' : '#fff';
+      const isNegative = item.total_amount < 0;
+      const bg = isNegative ? '#fff3f3' : '#fff';
+      const distUnits = isNegative ? 0 : item.distributor_units;
+      const distAmt = isNegative ? 0 : item.distributor_amount;
+      const onlineUnits = isNegative ? 0 : item.online_units;
+      const onlineAmt = isNegative ? 0 : item.online_amount;
+      const schoolUnits = isNegative ? 0 : item.school_units;
+      const schoolAmt = isNegative ? 0 : item.school_amount;
+      const totalAmt = isNegative ? 0 : item.total_amount;
       html += `<tr style="background:${bg};border-bottom:1px solid #eee;">`;
       html += `<td style="padding:6px 8px;">${item.book_title}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;">${item.distributor_units}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;">${formatEur(item.distributor_amount)}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;">${item.online_units}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;">${formatEur(item.online_amount)}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;">${item.school_units}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;">${formatEur(item.school_amount)}</td>`;
-      html += `<td style="padding:6px 8px;text-align:right;font-weight:bold;">${formatEur(item.total_amount)}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;">${distUnits}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;">${formatEur(distAmt)}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;">${onlineUnits}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;">${formatEur(onlineAmt)}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;">${schoolUnits}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;">${formatEur(schoolAmt)}</td>`;
+      html += `<td style="padding:6px 8px;text-align:right;font-weight:bold;">${formatEur(totalAmt)}</td>`;
       html += '</tr>';
     }
     const total = items.reduce((s, i) => s + (i.total_amount > 0 ? i.total_amount : 0), 0);
