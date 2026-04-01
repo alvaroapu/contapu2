@@ -63,6 +63,7 @@ async function parseDocxBooks(file: File): Promise<ParsedBook[]> {
   const rows = doc.querySelectorAll('tr');
 
   const books: ParsedBook[] = [];
+  const seen = new Set<string>();
   rows.forEach(row => {
     const cells = row.querySelectorAll('td');
     if (cells.length >= 2) {
@@ -72,7 +73,11 @@ async function parseDocxBooks(file: File): Promise<ParsedBook[]> {
       const author = cleanAuthor(rawAuthor);
       const title = cleanTitle(rawTitle);
       if (author && title) {
-        books.push({ author, title, selected: true, status: 'pending' });
+        const key = `${author.toLowerCase()}::${title.toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          books.push({ author, title, selected: true, status: 'pending' });
+        }
       }
     }
   });
