@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, FileDown, Search } from 'lucide-react';
+import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, FileDown, Search, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateAuthorDOCX } from './LiquidacionDOCX';
@@ -50,6 +50,8 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [activeTab, setActiveTab] = useState('message');
   const [testingPdf, setTestingPdf] = useState(false);
   const [authorSearch, setAuthorSearch] = useState('');
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -207,7 +209,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
       const sanitizedName = firstAuthor.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
         .replace(/_+/g, '_');
       const fileName = `${liquidation.year}/${sanitizedName}.docx`;
 
@@ -244,6 +246,56 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       toast.error(`Error en conversión PDF: ${err.message}`);
     } finally {
       setTestingPdf(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmail.trim()) {
+      toast.error('Introduce un email de prueba');
+      return;
+    }
+    const firstAuthor = authors[0];
+    if (!firstAuthor) {
+      toast.error('No hay autores disponibles para la prueba');
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const sanitizedName = firstAuthor.author
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/_+/g, '_');
+      const fileName = `${liquidation.year}/${sanitizedName}.docx`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('liquidation-docs')
+        .upload(fileName, blob, { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
+
+      const { data: urlData } = supabase.storage.from('liquidation-docs').getPublicUrl(fileName);
+      const summaryHtml = buildSummaryHtml(firstAuthor.author);
+
+      const { error } = await supabase.functions.invoke('send-liquidation-email', {
+        body: {
+          author: firstAuthor.author,
+          authorEmail: testEmail.trim(),
+          liquidationYear: liquidation.year,
+          summaryHtml,
+          docxUrl: urlData.publicUrl,
+          subject: resolveText(subject, firstAuthor.author),
+          introText: resolveText(introText, firstAuthor.author),
+          outroText: resolveText(outroText, firstAuthor.author),
+          ...(fromEmail.trim() ? { fromEmail: fromEmail.trim() } : {}),
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Email de prueba enviado a ${testEmail.trim()} (datos de "${firstAuthor.author}")`);
+    } catch (err: any) {
+      toast.error(`Error en envío de prueba: ${err.message}`);
+    } finally {
+      setSendingTest(false);
     }
   };
 
@@ -398,15 +450,38 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
-          <Button variant="secondary" onClick={handleTestPdf} disabled={testingPdf || sending || authors.length === 0}>
-            {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-            Probar PDF
-          </Button>
-          <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
-            {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Enviar a {withEmail.length - sentCount} autor(es)
-          </Button>
+        <div className="space-y-3 w-full">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label htmlFor="test-email" className="text-xs text-muted-foreground">
+                Enviar email de prueba (usa datos del primer autor)
+              </Label>
+              <Input
+                id="test-email"
+                type="email"
+                placeholder="tu@email.com"
+                value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <Button variant="secondary" onClick={handleTestEmail} disabled={sendingTest || sending || authors.length === 0 || !testEmail.trim()}>
+              {sendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Enviar prueba
+            </Button>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+            <Button variant="secondary" onClick={handleTestPdf} disabled={testingPdf || sending || authors.length === 0}>
+              {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+              Probar PDF
+            </Button>
+            <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
+              {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enviar a {withEmail.length - sentCount} autor(es)
+            </Button>
+          </div>
+        </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
