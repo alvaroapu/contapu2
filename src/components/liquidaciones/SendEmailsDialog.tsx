@@ -232,9 +232,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     const BATCH_DELAY_MS = 3000;
     const EMAIL_DELAY_MS = 500;
 
-    const toSend = authors
+  const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
-      .filter(a => a.email && a.status !== 'sent');
+      .filter(a => a.email && a.status !== 'sent' && a.total > 0);
 
     const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
 
@@ -361,8 +361,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
   };
 
-  const withEmail = authors.filter(a => a.email);
+  const withEmail = authors.filter(a => a.email && a.total > 0);
   const withoutEmail = authors.filter(a => !a.email);
+  const excludedNegative = authors.filter(a => a.email && a.total <= 0);
   const sentCount = authors.filter(a => a.status === 'sent').length;
   const errorCount = authors.filter(a => a.status === 'error').length;
 
@@ -452,6 +453,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               <div className="flex gap-3 text-sm flex-wrap">
                 <Badge variant="default">{withEmail.length} con email</Badge>
                 {withoutEmail.length > 0 && <Badge variant="secondary">{withoutEmail.length} sin email</Badge>}
+                {excludedNegative.length > 0 && <Badge variant="outline" className="border-orange-400 text-orange-600">{excludedNegative.length} excluidos (≤0€)</Badge>}
                 {sentCount > 0 && <Badge className="bg-green-600">{sentCount} enviados</Badge>}
                 {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
               </div>
@@ -480,13 +482,14 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                   </TableHeader>
                   <TableBody>
                     {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => (
-                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : ''}>
+                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : a.total <= 0 ? 'bg-orange-50 opacity-70' : ''}>
                         <TableCell className="font-medium text-sm">{a.author}</TableCell>
                         <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
                         <TableCell className="text-right text-sm">{a.bookCount}</TableCell>
                         <TableCell className="text-right text-sm">{formatEur(a.total)}</TableCell>
                         <TableCell>
-                          {a.status === 'pending' && a.email && <Badge variant="secondary">Pendiente</Badge>}
+                          {a.email && a.total <= 0 && <Badge variant="outline" className="border-orange-400 text-orange-600 text-xs">Excluido</Badge>}
+                          {a.status === 'pending' && a.email && a.total > 0 && <Badge variant="secondary">Pendiente</Badge>}
                           {a.status === 'sending' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                           {a.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                           {a.status === 'error' && (
@@ -497,7 +500,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                           {!a.email && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
                         </TableCell>
                         <TableCell>
-                          {a.email && a.status !== 'sent' && a.status !== 'sending' && (
+                          {a.email && a.total > 0 && a.status !== 'sent' && a.status !== 'sending' && (
                             <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx, 0)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
