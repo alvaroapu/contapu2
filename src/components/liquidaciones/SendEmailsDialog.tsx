@@ -477,8 +477,9 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
             </TabsContent>
 
             <TabsContent value="recipients" className="mt-4 space-y-3">
-              <div className="flex gap-3 text-sm flex-wrap">
-                <Badge variant="default">{withEmail.length} con email</Badge>
+              <div className="flex gap-3 text-sm flex-wrap items-center">
+                <Badge variant="default">{sendableAuthors.length} a enviar</Badge>
+                {manuallyExcluded.length > 0 && <Badge variant="secondary">{manuallyExcluded.length} excluidos manual</Badge>}
                 {withoutEmail.length > 0 && <Badge variant="secondary">{withoutEmail.length} sin email</Badge>}
                 {excludedNegative.length > 0 && <Badge variant="outline" className="border-orange-400 text-orange-600">{excludedNegative.length} excluidos (≤0€)</Badge>}
                 {sentCount > 0 && <Badge className="bg-green-600">{sentCount} enviados</Badge>}
