@@ -50,6 +50,7 @@ const DEFAULT_OUTRO = () =>
 
 export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: Props) {
   const [authors, setAuthors] = useState<AuthorEmail[]>([]);
+  const [filteredItems, setFilteredItems] = useState<LiquidationItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [subject, setSubject] = useState('');
@@ -74,8 +75,27 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const loadAuthors = async () => {
     setLoading(true);
+
+    // Fetch active book IDs to exclude inactive books from email sending
+    const activeBookIds = new Set<string>();
+    let abFrom = 0;
+    while (true) {
+      const { data } = await supabase
+        .from('books')
+        .select('id')
+        .eq('status', 'active')
+        .range(abFrom, abFrom + 999);
+      if (!data || data.length === 0) break;
+      for (const b of data) activeBookIds.add(b.id);
+      if (data.length < 1000) break;
+      abFrom += 1000;
+    }
+
+    // Filter allItems to only active books
+    const activeItems = allItems.filter(item => activeBookIds.has(item.book_id));
+
     const authorMap = new Map<string, LiquidationItem[]>();
-    for (const item of allItems) {
+    for (const item of activeItems) {
       const list = authorMap.get(item.author) ?? [];
       list.push(item);
       authorMap.set(item.author, list);
@@ -88,6 +108,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       const { data } = await supabase
         .from('books')
         .select('author, author_email')
+        .eq('status', 'active')
         .in('author', authorNames.slice(from, from + 100));
       if (!data || data.length === 0) break;
       allBooks.push(...data);
@@ -114,12 +135,13 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       };
     });
 
+    setFilteredItems(activeItems);
     setAuthors(result);
     setLoading(false);
   };
 
   const buildSummaryHtml = (author: string): string => {
-    const items = allItems.filter(i => i.author === author);
+    const items = filteredItems.filter(i => i.author === author);
     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
     html += '<tr style="background:#1a56db;color:white;"><th style="padding:8px;text-align:left;">Título</th><th style="padding:8px;text-align:right;">Dist. Uds</th><th style="padding:8px;text-align:right;">Dist. €</th><th style="padding:8px;text-align:right;">Web Uds</th><th style="padding:8px;text-align:right;">Web €</th><th style="padding:8px;text-align:right;">Inst. Uds</th><th style="padding:8px;text-align:right;">Inst. €</th><th style="padding:8px;text-align:right;">Total €</th></tr>';
     for (const item of items) {
@@ -158,7 +180,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     const now = new Date().toLocaleTimeString('es-ES');
 
     try {
-      const blob = await generateAuthorDOCX(authorData.author, allItems, liquidation);
+      const blob = await generateAuthorDOCX(authorData.author, filteredItems, liquidation);
       const sanitizedName = authorData.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -246,7 +268,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
     setTestingPdf(true);
     try {
-      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const blob = await generateAuthorDOCX(firstAuthor.author, filteredItems, liquidation);
       const sanitizedName = firstAuthor.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -301,7 +323,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
     setSendingTest(true);
     try {
-      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const blob = await generateAuthorDOCX(firstAuthor.author, filteredItems, liquidation);
       const sanitizedName = firstAuthor.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-zA-Z0-9_-]/g, '_')
