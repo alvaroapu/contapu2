@@ -190,7 +190,26 @@ export default function ImportarLibros() {
     toast.success(`${created} libros creados${errors > 0 ? `, ${errors} errores` : ''}`);
   }
 
-  function toggleAll(checked: boolean) {
+  async function handleRevert() {
+    const createdIds = books.filter(b => b.status === 'created' && b.createdId).map(b => b.createdId!);
+    if (createdIds.length === 0) return;
+    setReverting(true);
+    try {
+      // Delete in batches
+      for (let i = 0; i < createdIds.length; i += 50) {
+        const batch = createdIds.slice(i, i + 50);
+        const { error } = await supabase.from('books').delete().in('id', batch);
+        if (error) throw error;
+      }
+      setBooks(prev => prev.map(b => b.status === 'created' ? { ...b, status: 'pending', selected: true, createdId: undefined } : b));
+      toast.success(`${createdIds.length} libros eliminados`);
+    } catch (err: any) {
+      toast.error('Error al revertir: ' + err.message);
+    } finally {
+      setReverting(false);
+    }
+  }
+
     setBooks(prev => prev.map(b => b.status === 'pending' ? { ...b, selected: checked } : b));
   }
 
