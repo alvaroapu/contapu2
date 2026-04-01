@@ -190,6 +190,7 @@ export default function Ventas() {
 
       <MovementFormDialog open={showMovForm} onOpenChange={setShowMovForm} year={year} />
       <ExportDialog open={showExport} onOpenChange={setShowExport} year={year} />
+      <ManualMovementsDialog open={showManual} onOpenChange={setShowManual} year={year} />
     </div>
   );
 }
