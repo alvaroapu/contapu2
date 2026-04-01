@@ -1,4 +1,4 @@
-import { LayoutDashboard, BookOpen, BarChart3, Upload, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, BarChart3, Upload, FileText, LogOut, BookPlus } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import {
