@@ -305,6 +305,28 @@ export default function ImportarLibros() {
               <BookPlus className="mr-2 h-4 w-4" />
               {importing ? `Importando… ${progress}%` : `Importar seleccionados (${selectedCount})`}
             </Button>
+            {createdCount > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={reverting}>
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    {reverting ? 'Revirtiendo…' : `Revertir (${createdCount})`}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Revertir importación?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminarán {createdCount} libros creados en esta importación. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRevert}>Revertir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <div className="relative ml-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
