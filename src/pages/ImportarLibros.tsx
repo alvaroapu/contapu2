@@ -105,6 +105,7 @@ export default function ImportarLibros() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editAuthor, setEditAuthor] = useState('');
   const [editTitle, setEditTitle] = useState('');
+  const [reverting, setReverting] = useState(false);
 
   async function handleParse() {
     if (!file) return;
