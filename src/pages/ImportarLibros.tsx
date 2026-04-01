@@ -98,6 +98,7 @@ export default function ImportarLibros() {
   const [files, setFiles] = useState<File[]>([]);
   const [books, setBooks] = useState<ParsedBook[]>([]);
   const [parsing, setParsing] = useState(false);
+  const [parsingProgress, setParsingProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
   const [checking, setChecking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
