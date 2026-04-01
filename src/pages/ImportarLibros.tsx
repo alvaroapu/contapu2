@@ -385,16 +385,22 @@ export default function ImportarLibros() {
             <input
               type="file"
               accept=".docx"
-              onChange={e => { setFile(e.target.files?.[0] ?? null); setBooks([]); }}
+              multiple
+              onChange={e => { setFiles(e.target.files ? Array.from(e.target.files) : []); setBooks([]); }}
               className="text-sm"
             />
-            <Button onClick={handleParse} disabled={!file || parsing || checking}>
+            <Button onClick={handleParse} disabled={files.length === 0 || parsing || checking}>
               <Upload className="mr-2 h-4 w-4" />
-              {parsing ? 'Leyendo…' : checking ? 'Comprobando…' : 'Leer archivo'}
+              {parsing ? 'Leyendo…' : checking ? 'Comprobando…' : `Leer archivo${files.length > 1 ? 's' : ''}`}
             </Button>
           </div>
+          {files.length > 1 && (
+            <p className="text-sm text-muted-foreground">
+              {files.length} archivos seleccionados: {files.map(f => f.name).join(', ')}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
-            Sube un archivo DOCX con una tabla de dos columnas: Autor y Título.
+            Sube uno o varios archivos DOCX con una tabla de dos columnas: Autor y Título.
             Se limpiará automáticamente y se buscará si ya existen libros similares.
           </p>
         </CardContent>
