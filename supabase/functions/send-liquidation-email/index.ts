@@ -174,7 +174,6 @@ Deno.serve(async (req) => {
           username: smtpUser,
           password: smtpPass,
         },
-        },
       },
     });
 
