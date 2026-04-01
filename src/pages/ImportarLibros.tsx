@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2 } from 'lucide-react';
+import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2, Undo2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ParsedBook {
   author: string;
