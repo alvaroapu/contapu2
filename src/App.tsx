@@ -12,6 +12,7 @@ import Ventas from "./pages/Ventas";
 import Importar from "./pages/Importar";
 import Liquidaciones from "./pages/Liquidaciones";
 import LiquidacionDetalle from "./pages/LiquidacionDetalle";
+import ImportarLibros from "./pages/ImportarLibros";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
