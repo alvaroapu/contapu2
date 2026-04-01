@@ -95,7 +95,7 @@ async function parseDocxBooks(file: File): Promise<ParsedBook[]> {
 }
 
 export default function ImportarLibros() {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [books, setBooks] = useState<ParsedBook[]>([]);
   const [parsing, setParsing] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -120,21 +120,33 @@ export default function ImportarLibros() {
   }
 
   async function handleParse() {
-    if (!file) return;
+    if (files.length === 0) return;
     setParsing(true);
     try {
-      const parsed = await parseDocxBooks(file);
-      if (parsed.length === 0) {
-        toast.error('No se encontraron libros en el archivo');
+      const allBooks: ParsedBook[] = [];
+      const seen = new Set<string>();
+
+      for (const f of files) {
+        const parsed = await parseDocxBooks(f);
+        for (const book of parsed) {
+          const key = `${book.author.toLowerCase()}::${book.title.toLowerCase()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allBooks.push(book);
+          }
+        }
+      }
+
+      if (allBooks.length === 0) {
+        toast.error('No se encontraron libros en los archivos');
         setParsing(false);
         return;
       }
-      setBooks(parsed);
-      toast.success(`${parsed.length} libros encontrados. Comprobando duplicados…`);
-      // Automatically check for fuzzy matches
-      await checkFuzzyMatches(parsed);
+      setBooks(allBooks);
+      toast.success(`${allBooks.length} libros encontrados en ${files.length} archivo(s). Comprobando duplicados…`);
+      await checkFuzzyMatches(allBooks);
     } catch (err: any) {
-      toast.error('Error al leer el archivo: ' + err.message);
+      toast.error('Error al leer los archivos: ' + err.message);
     } finally {
       setParsing(false);
     }
@@ -220,7 +232,7 @@ export default function ImportarLibros() {
 
     // Create import batch record
     const { data: batchData } = await supabase.from('book_import_batches').insert({
-      file_name: file?.name ?? 'Sin nombre',
+      file_name: files.map(f => f.name).join(', ') || 'Sin nombre',
       books_created: 0,
     } as any).select('id').single();
     const batchId = batchData?.id;
@@ -373,16 +385,22 @@ export default function ImportarLibros() {
             <input
               type="file"
               accept=".docx"
-              onChange={e => { setFile(e.target.files?.[0] ?? null); setBooks([]); }}
+              multiple
+              onChange={e => { setFiles(e.target.files ? Array.from(e.target.files) : []); setBooks([]); }}
               className="text-sm"
             />
-            <Button onClick={handleParse} disabled={!file || parsing || checking}>
+            <Button onClick={handleParse} disabled={files.length === 0 || parsing || checking}>
               <Upload className="mr-2 h-4 w-4" />
-              {parsing ? 'Leyendo…' : checking ? 'Comprobando…' : 'Leer archivo'}
+              {parsing ? 'Leyendo…' : checking ? 'Comprobando…' : `Leer archivo${files.length > 1 ? 's' : ''}`}
             </Button>
           </div>
+          {files.length > 1 && (
+            <p className="text-sm text-muted-foreground">
+              {files.length} archivos seleccionados: {files.map(f => f.name).join(', ')}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
-            Sube un archivo DOCX con una tabla de dos columnas: Autor y Título.
+            Sube uno o varios archivos DOCX con una tabla de dos columnas: Autor y Título.
             Se limpiará automáticamente y se buscará si ya existen libros similares.
           </p>
         </CardContent>
