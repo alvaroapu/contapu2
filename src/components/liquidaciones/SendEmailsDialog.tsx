@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, FileDown, Search } from 'lucide-react';
+import { Loader2, Mail, CheckCircle2, XCircle, AlertCircle, FileDown, Search, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateAuthorDOCX } from './LiquidacionDOCX';
