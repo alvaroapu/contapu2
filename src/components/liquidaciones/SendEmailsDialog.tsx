@@ -29,6 +29,15 @@ interface AuthorEmail {
   bookCount: number;
 }
 
+interface LogEntry {
+  timestamp: string;
+  author: string;
+  email: string;
+  status: 'sent' | 'error';
+  error?: string;
+  batch: number;
+}
+
 function formatEur(val: number): string {
   return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val) + ' €';
 }
