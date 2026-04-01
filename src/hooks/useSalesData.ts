@@ -137,7 +137,7 @@ export function useDeleteMovement() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sales'] });
-      qc.invalidateQueries({ queryKey: ['manual-movements'] });
+      qc.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento eliminado');
     },
     onError: (e: any) => toast.error(e.message ?? 'Error al eliminar'),
