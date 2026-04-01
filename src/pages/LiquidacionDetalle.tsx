@@ -268,9 +268,15 @@ export default function LiquidacionDetalle() {
           <Switch checked={onlyWithSales} onCheckedChange={v => { setOnlyWithSales(v); setPage(0); }} />
           <Label className="text-sm">Solo con ventas</Label>
         </div>
-        <div className="flex items-center gap-2">
-          <Switch checked={hideNegatives} onCheckedChange={setHideNegatives} />
-          <Label className="text-sm">Ocultar negativos</Label>
+        <div className="w-44">
+          <Select value={negativeFilter} onValueChange={v => setNegativeFilter(v as 'all' | 'only' | 'hide')}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los importes</SelectItem>
+              <SelectItem value="hide">Ocultar negativos</SelectItem>
+              <SelectItem value="only">Solo negativos</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
