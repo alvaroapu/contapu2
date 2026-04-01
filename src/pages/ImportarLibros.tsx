@@ -8,67 +8,56 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2, Undo2 } from 'lucide-react';
+import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2, Undo2, Loader2, Link2, AlertTriangle } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+interface FuzzyMatch {
+  book_id: string;
+  book_title: string;
+  book_author: string;
+  book_isbn: string | null;
+  book_pvp: number;
+  title_similarity: number;
+  author_similarity: number;
+  combined_score: number;
+}
 
 interface ParsedBook {
   author: string;
   title: string;
   selected: boolean;
-  status: 'pending' | 'exists' | 'created' | 'error';
-  existingId?: string;
+  status: 'pending' | 'match_found' | 'exists' | 'created' | 'error';
   createdId?: string;
+  existingId?: string;
+  matches?: FuzzyMatch[];
+  chosenAction?: 'create' | 'link';
   error?: string;
 }
 
-/**
- * Clean author name:
- * - Remove leading numbers
- * - Remove content in parentheses (nicknames)
- * - Fix spacing
- */
 function cleanAuthor(raw: string): string {
   let s = raw.trim();
-  // Remove leading digits
   s = s.replace(/^\d+\s*/, '');
-  // Remove parenthetical nicknames
   s = s.replace(/\([^)]*\)/g, '');
-  // Normalize whitespace
   s = s.replace(/\s+/g, ' ').trim();
   return s;
 }
 
-/**
- * Clean book title:
- * - Remove surrounding quotes
- * - Fix spacing
- * - Convert ALL CAPS to Sentence case
- */
 function cleanTitle(raw: string): string {
   let s = raw.trim();
-  // Remove surrounding quotes (both "curly" and "straight")
   s = s.replace(/^[""\u201C\u201D]+|[""\u201C\u201D]+$/g, '');
-  // Normalize whitespace
   s = s.replace(/\s+/g, ' ').trim();
-  // If entirely uppercase, convert to sentence case
   if (s === s.toUpperCase() && s.length > 1) {
     s = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   }
   return s;
 }
 
-/**
- * Parse a DOCX file and extract author-title pairs from tables.
- */
 async function parseDocxBooks(file: File): Promise<ParsedBook[]> {
   const arrayBuffer = await file.arrayBuffer();
-
-  // Use mammoth to extract raw HTML, then parse tables
   const result = await mammoth.convertToHtml({ arrayBuffer });
   const html = result.value;
-
-  // Parse HTML to extract table rows
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
   const rows = doc.querySelectorAll('tr');
@@ -79,18 +68,14 @@ async function parseDocxBooks(file: File): Promise<ParsedBook[]> {
     if (cells.length >= 2) {
       const rawAuthor = cells[0].textContent ?? '';
       const rawTitle = cells[1].textContent ?? '';
-
       if (!rawAuthor.trim() && !rawTitle.trim()) return;
-
       const author = cleanAuthor(rawAuthor);
       const title = cleanTitle(rawTitle);
-
       if (author && title) {
         books.push({ author, title, selected: true, status: 'pending' });
       }
     }
   });
-
   return books;
 }
 
@@ -98,9 +83,9 @@ export default function ImportarLibros() {
   const [file, setFile] = useState<File | null>(null);
   const [books, setBooks] = useState<ParsedBook[]>([]);
   const [parsing, setParsing] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [checked, setChecked] = useState(false);
   const [search, setSearch] = useState('');
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editAuthor, setEditAuthor] = useState('');
@@ -118,8 +103,9 @@ export default function ImportarLibros() {
         return;
       }
       setBooks(parsed);
-      setChecked(false);
-      toast.success(`${parsed.length} libros encontrados`);
+      toast.success(`${parsed.length} libros encontrados. Comprobando duplicados…`);
+      // Automatically check for fuzzy matches
+      await checkFuzzyMatches(parsed);
     } catch (err: any) {
       toast.error('Error al leer el archivo: ' + err.message);
     } finally {
@@ -127,28 +113,72 @@ export default function ImportarLibros() {
     }
   }
 
-  async function checkExisting() {
-    setChecked(true);
-    const updated = [...books];
+  async function checkFuzzyMatches(bookList: ParsedBook[]) {
+    setChecking(true);
+    const updated = [...bookList];
 
-    // Check in batches of 20
-    for (let i = 0; i < updated.length; i += 20) {
-      const batch = updated.slice(i, i + 20);
-      const titles = batch.map(b => b.title);
-
-      for (let j = 0; j < titles.length; j++) {
-        const { data } = await (supabase as any).rpc('match_book_by_normalized_title', {
-          p_title: titles[j],
+    for (let i = 0; i < updated.length; i++) {
+      try {
+        const { data } = await (supabase as any).rpc('fuzzy_match_books', {
+          p_author: updated[i].author,
+          p_title: updated[i].title,
+          p_threshold: 0.35,
         });
+
         if (data && data.length > 0) {
-          updated[i + j] = { ...updated[i + j], status: 'exists', existingId: data[0].id, selected: false };
+          // Check if there's an exact or very high match
+          const bestMatch = data[0] as FuzzyMatch;
+          if (bestMatch.combined_score > 0.85) {
+            // Very high match — mark as existing
+            updated[i] = {
+              ...updated[i],
+              status: 'exists',
+              existingId: bestMatch.book_id,
+              matches: data as FuzzyMatch[],
+              selected: false,
+            };
+          } else {
+            // Partial match — needs user decision
+            updated[i] = {
+              ...updated[i],
+              status: 'match_found',
+              matches: data as FuzzyMatch[],
+              selected: false,
+            };
+          }
         }
+      } catch {
+        // Ignore errors, leave as pending
+      }
+
+      // Update progress visually every 5 items
+      if (i % 5 === 0) {
+        setBooks([...updated]);
       }
     }
 
     setBooks(updated);
-    const existCount = updated.filter(b => b.status === 'exists').length;
-    toast.info(`${existCount} libros ya existen en el catálogo, ${updated.length - existCount} nuevos`);
+    setChecking(false);
+
+    const exactCount = updated.filter(b => b.status === 'exists').length;
+    const fuzzyCount = updated.filter(b => b.status === 'match_found').length;
+    const newCount = updated.filter(b => b.status === 'pending').length;
+
+    toast.info(
+      `${exactCount} ya existen, ${fuzzyCount} posibles coincidencias, ${newCount} nuevos`
+    );
+  }
+
+  function chooseCreate(idx: number) {
+    setBooks(prev => prev.map((b, i) =>
+      i === idx ? { ...b, status: 'pending', selected: true, chosenAction: 'create', matches: undefined } : b
+    ));
+  }
+
+  function chooseLink(idx: number, matchId: string) {
+    setBooks(prev => prev.map((b, i) =>
+      i === idx ? { ...b, status: 'exists', existingId: matchId, selected: false, chosenAction: 'link' } : b
+    ));
   }
 
   async function handleImport() {
@@ -195,7 +225,6 @@ export default function ImportarLibros() {
     if (createdIds.length === 0) return;
     setReverting(true);
     try {
-      // Delete in batches
       for (let i = 0; i < createdIds.length; i += 50) {
         const batch = createdIds.slice(i, i + 50);
         const { error } = await supabase.from('books').delete().in('id', batch);
@@ -209,6 +238,7 @@ export default function ImportarLibros() {
       setReverting(false);
     }
   }
+
   function toggleAll(checked: boolean) {
     setBooks(prev => prev.map(b => b.status === 'pending' ? { ...b, selected: checked } : b));
   }
@@ -228,9 +258,17 @@ export default function ImportarLibros() {
     setEditingIdx(null);
   }
 
+  function createAllPending() {
+    // Mark all match_found as "create new"
+    setBooks(prev => prev.map(b =>
+      b.status === 'match_found' ? { ...b, status: 'pending', selected: true, chosenAction: 'create', matches: undefined } : b
+    ));
+  }
+
   const pendingCount = books.filter(b => b.status === 'pending').length;
   const selectedCount = books.filter(b => b.selected && b.status === 'pending').length;
   const existsCount = books.filter(b => b.status === 'exists').length;
+  const matchCount = books.filter(b => b.status === 'match_found').length;
   const createdCount = books.filter(b => b.status === 'created').length;
 
   const filteredBooks = search
@@ -248,63 +286,59 @@ export default function ImportarLibros() {
             <input
               type="file"
               accept=".docx"
-              onChange={e => { setFile(e.target.files?.[0] ?? null); setBooks([]); setChecked(false); }}
+              onChange={e => { setFile(e.target.files?.[0] ?? null); setBooks([]); }}
               className="text-sm"
             />
-            <Button onClick={handleParse} disabled={!file || parsing}>
+            <Button onClick={handleParse} disabled={!file || parsing || checking}>
               <Upload className="mr-2 h-4 w-4" />
-              {parsing ? 'Leyendo…' : 'Leer archivo'}
+              {parsing ? 'Leyendo…' : checking ? 'Comprobando…' : 'Leer archivo'}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             Sube un archivo DOCX con una tabla de dos columnas: Autor y Título.
-            Los números delante de los autores, los apodos entre paréntesis y las comillas en los títulos se limpiarán automáticamente.
+            Se limpiará automáticamente y se buscará si ya existen libros similares.
           </p>
         </CardContent>
       </Card>
 
-      {books.length > 0 && (
+      {(checking) && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Comprobando coincidencias en el catálogo…
+        </div>
+      )}
+
+      {books.length > 0 && !checking && (
         <>
           {/* Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-4 pb-3 text-center">
-                <div className="text-2xl font-bold">{books.length}</div>
-                <div className="text-sm text-muted-foreground">Total leídos</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 text-center">
-                <div className="text-2xl font-bold">{pendingCount}</div>
-                <div className="text-sm text-muted-foreground">Nuevos</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 text-center">
-                <div className="text-2xl font-bold">{existsCount}</div>
-                <div className="text-sm text-muted-foreground">Ya existen</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 text-center">
-                <div className="text-2xl font-bold">{createdCount}</div>
-                <div className="text-sm text-muted-foreground">Creados</div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              { label: 'Total', value: books.length },
+              { label: 'Nuevos', value: pendingCount },
+              { label: 'Coincidencias', value: matchCount, color: 'text-amber-600' },
+              { label: 'Ya existen', value: existsCount },
+              { label: 'Creados', value: createdCount },
+            ].map(c => (
+              <Card key={c.label}>
+                <CardContent className="pt-4 pb-3 text-center">
+                  <div className={`text-2xl font-bold ${c.color ?? ''}`}>{c.value}</div>
+                  <div className="text-sm text-muted-foreground">{c.label}</div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-3">
-            {!checked && (
-              <Button variant="outline" onClick={checkExisting}>
-                <Search className="mr-2 h-4 w-4" />
-                Comprobar existentes
-              </Button>
-            )}
             <Button onClick={handleImport} disabled={importing || selectedCount === 0}>
               <BookPlus className="mr-2 h-4 w-4" />
               {importing ? `Importando… ${progress}%` : `Importar seleccionados (${selectedCount})`}
             </Button>
+            {matchCount > 0 && (
+              <Button variant="outline" size="sm" onClick={createAllPending}>
+                Crear todos los dudosos ({matchCount})
+              </Button>
+            )}
             {createdCount > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -317,7 +351,7 @@ export default function ImportarLibros() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>¿Revertir importación?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Se eliminarán {createdCount} libros creados en esta importación. Esta acción no se puede deshacer.
+                      Se eliminarán {createdCount} libros creados en esta importación.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -355,60 +389,118 @@ export default function ImportarLibros() {
                   <TableHead>Autor</TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead>Acción</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredBooks.map((book, idx) => {
                   const realIdx = search ? books.indexOf(book) : idx;
                   return (
-                    <TableRow key={realIdx} className={book.status === 'exists' ? 'opacity-50' : ''}>
-                      <TableCell>
-                        <Checkbox
-                          checked={book.selected}
-                          disabled={book.status !== 'pending'}
-                          onCheckedChange={() => toggleBook(realIdx)}
-                        />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{realIdx + 1}</TableCell>
-                      <TableCell>
-                        {editingIdx === realIdx ? (
-                          <Input value={editAuthor} onChange={e => setEditAuthor(e.target.value)} className="h-7 text-sm" />
-                        ) : (
-                          <span className="text-sm">{book.author}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingIdx === realIdx ? (
-                          <div className="flex gap-1 items-center">
-                            <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="h-7 text-sm" />
-                            <Button size="sm" variant="ghost" className="h-7" onClick={() => saveEdit(realIdx)}>✓</Button>
-                            <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditingIdx(null)}>✗</Button>
-                          </div>
-                        ) : (
-                          <span className="text-sm">{book.title}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          book.status === 'created' ? 'default' :
-                          book.status === 'exists' ? 'secondary' :
-                          book.status === 'error' ? 'destructive' : 'outline'
-                        }>
-                          {book.status === 'pending' && 'Nuevo'}
-                          {book.status === 'exists' && 'Ya existe'}
-                          {book.status === 'created' && <><CheckCircle2 className="h-3 w-3 mr-1" />Creado</>}
-                          {book.status === 'error' && <><XCircle className="h-3 w-3 mr-1" />Error</>}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {book.status === 'pending' && editingIdx !== realIdx && (
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(realIdx)}>
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow key={`row-${realIdx}`} className={
+                        book.status === 'exists' ? 'opacity-50' :
+                        book.status === 'match_found' ? 'bg-amber-50 dark:bg-amber-950/20' : ''
+                      }>
+                        <TableCell>
+                          <Checkbox
+                            checked={book.selected}
+                            disabled={book.status !== 'pending'}
+                            onCheckedChange={() => toggleBook(realIdx)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{realIdx + 1}</TableCell>
+                        <TableCell>
+                          {editingIdx === realIdx ? (
+                            <Input value={editAuthor} onChange={e => setEditAuthor(e.target.value)} className="h-7 text-sm" />
+                          ) : (
+                            <span className="text-sm">{book.author}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingIdx === realIdx ? (
+                            <div className="flex gap-1 items-center">
+                              <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="h-7 text-sm" />
+                              <Button size="sm" variant="ghost" className="h-7" onClick={() => saveEdit(realIdx)}>✓</Button>
+                              <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditingIdx(null)}>✗</Button>
+                            </div>
+                          ) : (
+                            <span className="text-sm">{book.title}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {book.status === 'pending' && (
+                            <Badge variant="outline">Nuevo</Badge>
+                          )}
+                          {book.status === 'match_found' && (
+                            <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Posible duplicado
+                            </Badge>
+                          )}
+                          {book.status === 'exists' && (
+                            <Badge variant="secondary">Ya existe</Badge>
+                          )}
+                          {book.status === 'created' && (
+                            <Badge variant="default"><CheckCircle2 className="h-3 w-3 mr-1" />Creado</Badge>
+                          )}
+                          {book.status === 'error' && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Error</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>{book.error}</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {book.status === 'pending' && editingIdx !== realIdx && (
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(realIdx)}>
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {book.status === 'match_found' && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => chooseCreate(realIdx)}>
+                              <BookPlus className="h-3 w-3 mr-1" /> Crear nuevo
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Show matches inline */}
+                      {book.status === 'match_found' && book.matches && (
+                        <TableRow key={`matches-${realIdx}`} className="bg-amber-50/50 dark:bg-amber-950/10">
+                          <TableCell colSpan={2}></TableCell>
+                          <TableCell colSpan={4}>
+                            <div className="py-1 space-y-1">
+                              <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">
+                                Coincidencias encontradas:
+                              </p>
+                              {book.matches.map((m, mi) => (
+                                <div key={mi} className="flex items-center gap-2 text-xs bg-background rounded px-2 py-1.5 border">
+                                  <div className="flex-1">
+                                    <span className="font-medium">{m.book_author}</span>
+                                    <span className="text-muted-foreground"> — </span>
+                                    <span>{m.book_title}</span>
+                                    {m.book_isbn && <span className="text-muted-foreground ml-2">({m.book_isbn})</span>}
+                                  </div>
+                                  <Badge variant="outline" className="text-[10px] shrink-0">
+                                    {Math.round(m.combined_score * 100)}% similar
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="h-6 text-xs shrink-0"
+                                    onClick={() => chooseLink(realIdx, m.book_id)}
+                                  >
+                                    <Link2 className="h-3 w-3 mr-1" /> Es este
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   );
                 })}
               </TableBody>

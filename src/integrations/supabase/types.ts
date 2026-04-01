@@ -337,6 +337,19 @@ export type Database = {
       }
     }
     Functions: {
+      fuzzy_match_books: {
+        Args: { p_author: string; p_threshold?: number; p_title: string }
+        Returns: {
+          author_similarity: number
+          book_author: string
+          book_id: string
+          book_isbn: string
+          book_pvp: number
+          book_title: string
+          combined_score: number
+          title_similarity: number
+        }[]
+      }
       get_dashboard_summary: {
         Args: { p_year: number }
         Returns: {
@@ -473,6 +486,8 @@ export type Database = {
           updated_at: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
