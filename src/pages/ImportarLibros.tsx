@@ -127,7 +127,9 @@ export default function ImportarLibros() {
       const allBooks: ParsedBook[] = [];
       const seen = new Set<string>();
 
-      for (const f of files) {
+      for (let fi = 0; fi < files.length; fi++) {
+        const f = files[fi];
+        setParsingProgress({ current: fi + 1, total: files.length, fileName: f.name });
         const parsed = await parseDocxBooks(f);
         for (const book of parsed) {
           const key = `${book.author.toLowerCase()}::${book.title.toLowerCase()}`;
