@@ -44,6 +44,7 @@ export default function Catalogo() {
   const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [autoMergeOpen, setAutoMergeOpen] = useState(false);
+  const [autoMergeTab, setAutoMergeTab] = useState<'isbn' | 'title'>('isbn');
   const [importEmailsOpen, setImportEmailsOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
@@ -128,8 +129,11 @@ export default function Catalogo() {
           <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
             <Merge className="mr-2 h-4 w-4" /> Fusionar
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setAutoMergeOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => { setAutoMergeTab('isbn'); setAutoMergeOpen(true); }}>
             <Merge className="mr-2 h-4 w-4" /> Auto-fusionar ISBN
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setAutoMergeTab('title'); setAutoMergeOpen(true); }}>
+            <Merge className="mr-2 h-4 w-4" /> Buscar duplicados título
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
@@ -315,7 +319,7 @@ export default function Catalogo() {
       <BookFormDialog open={formOpen} onOpenChange={setFormOpen} book={editingBook} />
       <ImportBooksDialog open={importOpen} onOpenChange={setImportOpen} />
       <MergeBookDialog open={mergeOpen} onOpenChange={(v) => { setMergeOpen(v); if (!v) setSelectedIds(new Set()); }} preselectedIds={[...selectedIds]} />
-      <AutoMergeDialog open={autoMergeOpen} onOpenChange={setAutoMergeOpen} />
+      <AutoMergeDialog open={autoMergeOpen} onOpenChange={setAutoMergeOpen} defaultTab={autoMergeTab} />
       <ImportEmailsDialog open={importEmailsOpen} onOpenChange={setImportEmailsOpen} />
 
       <AlertDialog open={!!deleteBookId} onOpenChange={(v) => { if (!v) setDeleteBookId(null); }}>
