@@ -44,6 +44,7 @@ export default function Catalogo() {
   const [deleteBulkOpen, setDeleteBulkOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [autoMergeOpen, setAutoMergeOpen] = useState(false);
+  const [autoMergeTab, setAutoMergeTab] = useState<'isbn' | 'title'>('isbn');
   const [importEmailsOpen, setImportEmailsOpen] = useState(false);
 
   const deleteAll = useDeleteAllBooks();
