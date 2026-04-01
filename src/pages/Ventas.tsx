@@ -9,8 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditableCell } from '@/components/ventas/EditableCell';
 import { MovementFormDialog } from '@/components/ventas/MovementFormDialog';
 import { ExportDialog } from '@/components/ventas/ExportDialog';
+import { ManualMovementsDialog } from '@/components/ventas/ManualMovementsDialog';
 import { MONTHS, getYears } from '@/lib/constants';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, List } from 'lucide-react';
 
 const PAGE_SIZE = 25;
 
