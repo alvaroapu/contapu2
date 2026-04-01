@@ -50,6 +50,7 @@ const DEFAULT_OUTRO = () =>
 
 export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: Props) {
   const [authors, setAuthors] = useState<AuthorEmail[]>([]);
+  const [filteredItems, setFilteredItems] = useState<LiquidationItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [subject, setSubject] = useState('');
