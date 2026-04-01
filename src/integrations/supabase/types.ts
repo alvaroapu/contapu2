@@ -445,6 +445,34 @@ export type Database = {
         }[]
       }
       normalize_text: { Args: { input: string }; Returns: string }
+      search_books_page: {
+        Args: {
+          p_author?: string
+          p_limit?: number
+          p_missing_email?: boolean
+          p_missing_isbn?: boolean
+          p_offset?: number
+          p_search?: string
+          p_sort_column?: string
+          p_sort_direction?: string
+          p_status?: string
+        }
+        Returns: {
+          author: string
+          author_email: string
+          created_at: string
+          ean: string
+          id: string
+          isbn: string
+          maidhisa_ref: string
+          publication_date: string
+          pvp: number
+          status: string
+          title: string
+          total_count: number
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
