@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as mammoth from 'mammoth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2, Undo2, Loader2, Link2, AlertTriangle } from 'lucide-react';
+import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2, Undo2, Loader2, Link2, AlertTriangle, History } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { formatDate } from '@/lib/format';
+
+interface ImportBatch {
+  id: string;
+  file_name: string;
+  books_created: number;
+  imported_at: string;
+  reverted: boolean;
+  reverted_at: string | null;
+}
 
 interface FuzzyMatch {
   book_id: string;
