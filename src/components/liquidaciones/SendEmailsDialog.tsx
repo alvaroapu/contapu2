@@ -453,6 +453,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               <div className="flex gap-3 text-sm flex-wrap">
                 <Badge variant="default">{withEmail.length} con email</Badge>
                 {withoutEmail.length > 0 && <Badge variant="secondary">{withoutEmail.length} sin email</Badge>}
+                {excludedNegative.length > 0 && <Badge variant="outline" className="border-orange-400 text-orange-600">{excludedNegative.length} excluidos (≤0€)</Badge>}
                 {sentCount > 0 && <Badge className="bg-green-600">{sentCount} enviados</Badge>}
                 {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
               </div>
