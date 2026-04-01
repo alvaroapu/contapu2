@@ -412,7 +412,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="message">✏️ Mensaje</TabsTrigger>
-              <TabsTrigger value="recipients">📧 Destinatarios ({withEmail.length})</TabsTrigger>
+              <TabsTrigger value="recipients">📧 Destinatarios ({sendableAuthors.length})</TabsTrigger>
               <TabsTrigger value="log">📋 Log {sendLog.length > 0 && `(${sendLog.length})`}</TabsTrigger>
             </TabsList>
 
