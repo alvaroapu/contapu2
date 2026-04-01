@@ -95,7 +95,7 @@ async function parseDocxBooks(file: File): Promise<ParsedBook[]> {
 }
 
 export default function ImportarLibros() {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [books, setBooks] = useState<ParsedBook[]>([]);
   const [parsing, setParsing] = useState(false);
   const [checking, setChecking] = useState(false);
