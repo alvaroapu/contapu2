@@ -152,6 +152,7 @@ export default function ImportarLibros() {
       toast.error('Error al leer los archivos: ' + err.message);
     } finally {
       setParsing(false);
+      setParsingProgress(null);
     }
   }
 
