@@ -61,6 +61,8 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [authorSearch, setAuthorSearch] = useState('');
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  const [sendLog, setSendLog] = useState<LogEntry[]>([]);
+  const [sendProgress, setSendProgress] = useState('');
 
   useEffect(() => {
     if (!open) return;
