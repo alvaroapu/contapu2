@@ -217,6 +217,14 @@ export default function ImportarLibros() {
 
     setImporting(true);
     setProgress(0);
+
+    // Create import batch record
+    const { data: batchData } = await supabase.from('book_import_batches').insert({
+      file_name: file?.name ?? 'Sin nombre',
+      books_created: 0,
+    } as any).select('id').single();
+    const batchId = batchData?.id;
+
     const updated = [...books];
     let created = 0;
     let errors = 0;
@@ -229,6 +237,7 @@ export default function ImportarLibros() {
         author: updated[i].author,
         pvp: 15,
         status: 'active',
+        book_import_batch_id: batchId,
       }).select('id').single();
 
       if (error) {
@@ -242,9 +251,15 @@ export default function ImportarLibros() {
       setProgress(Math.round(((created + errors) / toImport.length) * 100));
     }
 
+    // Update batch with final count
+    if (batchId && created > 0) {
+      await supabase.from('book_import_batches').update({ books_created: created } as any).eq('id', batchId);
+    }
+
     setBooks(updated);
     setImporting(false);
     toast.success(`${created} libros creados${errors > 0 ? `, ${errors} errores` : ''}`);
+    loadHistory();
   }
 
   async function handleRevert() {
@@ -259,10 +274,55 @@ export default function ImportarLibros() {
       }
       setBooks(prev => prev.map(b => b.status === 'created' ? { ...b, status: 'pending', selected: true, createdId: undefined } : b));
       toast.success(`${createdIds.length} libros eliminados`);
+      loadHistory();
     } catch (err: any) {
       toast.error('Error al revertir: ' + err.message);
     } finally {
       setReverting(false);
+    }
+  }
+
+  async function handleRevertBatch(batchId: string) {
+    setRevertingBatchId(batchId);
+    try {
+      // Find all books in this batch
+      let allIds: string[] = [];
+      let from = 0;
+      while (true) {
+        const { data } = await supabase.from('books')
+          .select('id')
+          .eq('book_import_batch_id', batchId)
+          .range(from, from + 499);
+        if (!data || data.length === 0) break;
+        allIds.push(...data.map(b => b.id));
+        if (data.length < 500) break;
+        from += 500;
+      }
+
+      if (allIds.length === 0) {
+        toast.error('No se encontraron libros de este lote');
+        return;
+      }
+
+      // Delete books in batches
+      for (let i = 0; i < allIds.length; i += 50) {
+        const chunk = allIds.slice(i, i + 50);
+        const { error } = await supabase.from('books').delete().in('id', chunk);
+        if (error) throw error;
+      }
+
+      // Mark batch as reverted
+      await supabase.from('book_import_batches').update({
+        reverted: true,
+        reverted_at: new Date().toISOString(),
+      } as any).eq('id', batchId);
+
+      toast.success(`${allIds.length} libros eliminados`);
+      loadHistory();
+    } catch (err: any) {
+      toast.error('Error al revertir: ' + err.message);
+    } finally {
+      setRevertingBatchId(null);
     }
   }
 
