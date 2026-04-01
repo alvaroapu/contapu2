@@ -36,39 +36,35 @@ export function useBooks(filters: BookFilters) {
   return useQuery({
     queryKey: ['books', filters],
     queryFn: async () => {
-      let query = supabase.from('books').select('*', { count: 'exact' });
-
-      if (filters.search) {
-        const s = `%${filters.search}%`;
-        query = query.or(`title.ilike.${s},author.ilike.${s},isbn.ilike.${s}`);
-      }
-
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters.author) {
-        query = query.eq('author', filters.author);
-      }
-
-      if (filters.missingIsbn) {
-        query = query.is('isbn', null);
-      }
-
-      if (filters.missingEmail) {
-        query = query.or('author_email.is.null,author_email.eq.');
-      }
-
-      const from = filters.page * filters.pageSize;
-      const to = from + filters.pageSize - 1;
-
-      query = query
-        .order(filters.sortColumn, { ascending: filters.sortDirection === 'asc' })
-        .range(from, to);
-
-      const { data, error, count } = await query;
+      const { data, error } = await supabase.rpc('search_books_page', {
+        p_search: filters.search || '',
+        p_status: filters.status || '',
+        p_author: filters.author || '',
+        p_missing_isbn: filters.missingIsbn ?? false,
+        p_missing_email: filters.missingEmail ?? false,
+        p_sort_column: filters.sortColumn || 'title',
+        p_sort_direction: filters.sortDirection || 'asc',
+        p_offset: filters.page * filters.pageSize,
+        p_limit: filters.pageSize,
+      });
       if (error) throw error;
-      return { data: data as Book[], count: count ?? 0 };
+      const rows = (data ?? []) as any[];
+      const count = rows.length > 0 ? Number(rows[0].total_count) : 0;
+      const books: Book[] = rows.map(r => ({
+        id: r.id,
+        isbn: r.isbn,
+        ean: r.ean,
+        title: r.title,
+        author: r.author,
+        pvp: Number(r.pvp),
+        publication_date: r.publication_date,
+        status: r.status,
+        maidhisa_ref: r.maidhisa_ref,
+        author_email: r.author_email,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      }));
+      return { data: books, count };
     },
   });
 }
