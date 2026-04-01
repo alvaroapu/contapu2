@@ -141,7 +141,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   };
 
   const buildSummaryHtml = (author: string): string => {
-    const items = allItems.filter(i => i.author === author);
+    const items = filteredItems.filter(i => i.author === author);
     let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
     html += '<tr style="background:#1a56db;color:white;"><th style="padding:8px;text-align:left;">Título</th><th style="padding:8px;text-align:right;">Dist. Uds</th><th style="padding:8px;text-align:right;">Dist. €</th><th style="padding:8px;text-align:right;">Web Uds</th><th style="padding:8px;text-align:right;">Web €</th><th style="padding:8px;text-align:right;">Inst. Uds</th><th style="padding:8px;text-align:right;">Inst. €</th><th style="padding:8px;text-align:right;">Total €</th></tr>';
     for (const item of items) {
