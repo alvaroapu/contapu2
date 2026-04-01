@@ -166,18 +166,18 @@ export default function ImportarLibros() {
     for (let i = 0; i < updated.length; i++) {
       if (!updated[i].selected || updated[i].status !== 'pending') continue;
 
-      const { error } = await supabase.from('books').insert({
+      const { data: newBook, error } = await supabase.from('books').insert({
         title: updated[i].title,
         author: updated[i].author,
         pvp: 15,
         status: 'active',
-      });
+      }).select('id').single();
 
       if (error) {
         updated[i] = { ...updated[i], status: 'error', error: error.message };
         errors++;
       } else {
-        updated[i] = { ...updated[i], status: 'created' };
+        updated[i] = { ...updated[i], status: 'created', createdId: newBook?.id };
         created++;
       }
 
