@@ -9,18 +9,27 @@ import { useQueryClient } from '@tanstack/react-query';
 import { normalizeIsbn } from '@/lib/isbnUtils';
 import { toast } from 'sonner';
 import { Merge, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: 'isbn' | 'title';
 }
 
 interface DuplicateGroup {
-  normalizedIsbn: string;
+  key: string;
   books: { id: string; title: string; isbn: string | null; author: string; ean: string | null; maidhisa_ref: string | null }[];
 }
 
-export function AutoMergeDialog({ open, onOpenChange }: Props) {
+function normalizeTitle(t: string): string {
+  return t.toLowerCase().replace(/[áàâä]/g, 'a').replace(/[éèêë]/g, 'e')
+    .replace(/[íìîï]/g, 'i').replace(/[óòôö]/g, 'o').replace(/[úùûü]/g, 'u')
+    .replace(/ñ/g, 'n').replace(/ç/g, 'c').replace(/[^a-z0-9]/g, '').trim();
+}
+
+export function AutoMergeDialog({ open, onOpenChange, defaultTab = 'isbn' }: Props) {
+  const [tab, setTab] = useState<'isbn' | 'title'>(defaultTab);
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [scanning, setScanning] = useState(false);
   const [merging, setMerging] = useState(false);
@@ -33,28 +42,37 @@ export function AutoMergeDialog({ open, onOpenChange }: Props) {
       setDuplicates([]);
       setScanned(false);
       setProgress(0);
+      setTab(defaultTab);
     }
     onOpenChange(v);
   }
 
-  async function scanDuplicates() {
+  function handleTabChange(t: string) {
+    setTab(t as 'isbn' | 'title');
+    setDuplicates([]);
+    setScanned(false);
+    setProgress(0);
+  }
+
+  async function fetchAllBooks(filterIsbn: boolean) {
+    let all: any[] = [];
+    let from = 0;
+    while (true) {
+      let query = supabase.from('books').select('id, title, isbn, author, ean, maidhisa_ref');
+      if (filterIsbn) query = query.not('isbn', 'is', null);
+      const { data } = await query.range(from, from + 999);
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < 1000) break;
+      from += 1000;
+    }
+    return all;
+  }
+
+  async function scanByIsbn() {
     setScanning(true);
     try {
-      // Fetch all books with ISBN
-      let all: any[] = [];
-      let from = 0;
-      while (true) {
-        const { data } = await supabase.from('books')
-          .select('id, title, isbn, author, ean, maidhisa_ref')
-          .not('isbn', 'is', null)
-          .range(from, from + 999);
-        if (!data || data.length === 0) break;
-        all.push(...data);
-        if (data.length < 1000) break;
-        from += 1000;
-      }
-
-      // Group by normalized ISBN
+      const all = await fetchAllBooks(true);
       const groups = new Map<string, any[]>();
       for (const book of all) {
         if (!book.isbn) continue;
@@ -63,20 +81,38 @@ export function AutoMergeDialog({ open, onOpenChange }: Props) {
         if (!groups.has(norm)) groups.set(norm, []);
         groups.get(norm)!.push(book);
       }
-
-      // Filter to only groups with duplicates
       const dupes: DuplicateGroup[] = [];
-      for (const [normIsbn, books] of groups) {
-        if (books.length > 1) {
-          dupes.push({ normalizedIsbn: normIsbn, books });
-        }
+      for (const [key, books] of groups) {
+        if (books.length > 1) dupes.push({ key, books });
       }
-
       setDuplicates(dupes);
       setScanned(true);
-      if (dupes.length === 0) {
-        toast.info('No se encontraron libros duplicados por ISBN');
+      if (dupes.length === 0) toast.info('No se encontraron duplicados por ISBN');
+    } catch (err: any) {
+      toast.error('Error al escanear: ' + err.message);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function scanByTitle() {
+    setScanning(true);
+    try {
+      const all = await fetchAllBooks(false);
+      const groups = new Map<string, any[]>();
+      for (const book of all) {
+        const norm = normalizeTitle(book.title);
+        if (!norm) continue;
+        if (!groups.has(norm)) groups.set(norm, []);
+        groups.get(norm)!.push(book);
       }
+      const dupes: DuplicateGroup[] = [];
+      for (const [key, books] of groups) {
+        if (books.length > 1) dupes.push({ key, books });
+      }
+      setDuplicates(dupes);
+      setScanned(true);
+      if (dupes.length === 0) toast.info('No se encontraron duplicados por título');
     } catch (err: any) {
       toast.error('Error al escanear: ' + err.message);
     } finally {
@@ -85,31 +121,26 @@ export function AutoMergeDialog({ open, onOpenChange }: Props) {
   }
 
   async function mergeGroup(group: DuplicateGroup) {
-    // Keep the first book, merge the rest into it
     const target = group.books[0];
     const sources = group.books.slice(1);
 
     for (const source of sources) {
-      // Move sales_movements
       await supabase.from('sales_movements')
         .update({ book_id: target.id } as any)
         .eq('book_id', source.id);
 
-      // Move liquidation_items
       await supabase.from('liquidation_items')
         .update({ book_id: target.id } as any)
         .eq('book_id', source.id);
 
-      // Fill missing fields on target
       const updates: any = {};
-      if (!target.isbn && source.isbn) updates.isbn = source.isbn;
+      if (!target.isbn && source.isbn) { updates.isbn = source.isbn; target.isbn = source.isbn; }
       if (!target.ean && source.ean) { updates.ean = source.ean; target.ean = source.ean; }
       if (!target.maidhisa_ref && source.maidhisa_ref) { updates.maidhisa_ref = source.maidhisa_ref; target.maidhisa_ref = source.maidhisa_ref; }
       if (Object.keys(updates).length > 0) {
         await supabase.from('books').update(updates).eq('id', target.id);
       }
 
-      // Delete source
       await supabase.from('books').delete().eq('id', source.id);
     }
   }
@@ -142,68 +173,60 @@ export function AutoMergeDialog({ open, onOpenChange }: Props) {
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Merge className="h-5 w-5" /> Fusión automática por ISBN
+            <Merge className="h-5 w-5" /> Fusión automática de duplicados
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-auto">
-          {!scanned ? (
-            <div className="text-center py-8 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Escanea el catálogo para encontrar libros con el mismo ISBN (ignorando guiones) y fusionarlos automáticamente.
-              </p>
-              <Button onClick={scanDuplicates} disabled={scanning}>
-                <Search className="mr-2 h-4 w-4" />
-                {scanning ? 'Escaneando…' : 'Buscar duplicados'}
-              </Button>
-            </div>
-          ) : duplicates.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground">No hay libros duplicados por ISBN.</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
+        <Tabs value={tab} onValueChange={handleTabChange} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="isbn">Por ISBN</TabsTrigger>
+            <TabsTrigger value="title">Por Título</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="isbn" className="flex-1 overflow-auto space-y-4">
+            {!scanned ? (
+              <div className="text-center py-8 space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  {duplicates.length} grupo(s) con ISBN duplicado · {totalDuplicateBooks} libro(s) se eliminarán
+                  Busca libros con el mismo ISBN (ignorando guiones) y fusiónalos automáticamente.
                 </p>
-                <Badge variant="outline">{totalDuplicateBooks} duplicados</Badge>
+                <Button onClick={scanByIsbn} disabled={scanning}>
+                  <Search className="mr-2 h-4 w-4" />
+                  {scanning ? 'Escaneando…' : 'Buscar duplicados por ISBN'}
+                </Button>
               </div>
+            ) : (
+              <DuplicateResults
+                duplicates={duplicates}
+                totalDuplicateBooks={totalDuplicateBooks}
+                merging={merging}
+                progress={progress}
+                labelKey="ISBN"
+              />
+            )}
+          </TabsContent>
 
-              {merging && <Progress value={progress} className="h-2" />}
-
-              <div className="rounded border overflow-auto max-h-[400px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ISBN</TableHead>
-                      <TableHead>Se conserva</TableHead>
-                      <TableHead>Se eliminan</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {duplicates.map((group, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-xs font-mono">{group.books[0].isbn}</TableCell>
-                        <TableCell>
-                          <div className="text-sm font-medium">{group.books[0].title}</div>
-                          <div className="text-xs text-muted-foreground">{group.books[0].author}</div>
-                        </TableCell>
-                        <TableCell>
-                          {group.books.slice(1).map((b, j) => (
-                            <div key={j} className="text-xs text-muted-foreground">
-                              {b.title} <span className="text-destructive">→ eliminar</span>
-                            </div>
-                          ))}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+          <TabsContent value="title" className="flex-1 overflow-auto space-y-4">
+            {!scanned ? (
+              <div className="text-center py-8 space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Busca libros con el mismo título exacto (ignorando mayúsculas y acentos) y fusiónalos automáticamente.
+                </p>
+                <Button onClick={scanByTitle} disabled={scanning}>
+                  <Search className="mr-2 h-4 w-4" />
+                  {scanning ? 'Escaneando…' : 'Buscar duplicados por título'}
+                </Button>
               </div>
-            </>
-          )}
-        </div>
+            ) : (
+              <DuplicateResults
+                duplicates={duplicates}
+                totalDuplicateBooks={totalDuplicateBooks}
+                merging={merging}
+                progress={progress}
+                labelKey="Título"
+              />
+            )}
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>Cerrar</Button>
@@ -215,5 +238,66 @@ export function AutoMergeDialog({ open, onOpenChange }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DuplicateResults({ duplicates, totalDuplicateBooks, merging, progress, labelKey }: {
+  duplicates: DuplicateGroup[];
+  totalDuplicateBooks: number;
+  merging: boolean;
+  progress: number;
+  labelKey: string;
+}) {
+  if (duplicates.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-sm text-muted-foreground">No hay duplicados.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {duplicates.length} grupo(s) con {labelKey.toLowerCase()} duplicado · {totalDuplicateBooks} libro(s) se eliminarán
+        </p>
+        <Badge variant="outline">{totalDuplicateBooks} duplicados</Badge>
+      </div>
+
+      {merging && <Progress value={progress} className="h-2" />}
+
+      <div className="rounded border overflow-auto max-h-[400px]">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{labelKey}</TableHead>
+              <TableHead>Se conserva</TableHead>
+              <TableHead>Se eliminan</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {duplicates.map((group, i) => (
+              <TableRow key={i}>
+                <TableCell className="text-xs font-mono max-w-[150px] truncate">
+                  {labelKey === 'ISBN' ? group.books[0].isbn : group.books[0].title}
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm font-medium">{group.books[0].title}</div>
+                  <div className="text-xs text-muted-foreground">{group.books[0].author}</div>
+                </TableCell>
+                <TableCell>
+                  {group.books.slice(1).map((b, j) => (
+                    <div key={j} className="text-xs text-muted-foreground">
+                      {b.title} ({b.author}) <span className="text-destructive">→ eliminar</span>
+                    </div>
+                  ))}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }
