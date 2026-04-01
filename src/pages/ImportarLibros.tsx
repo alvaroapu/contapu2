@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2 } from 'lucide-react';
+import { Upload, BookPlus, Search, CheckCircle2, XCircle, Edit2, Undo2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ParsedBook {
   author: string;
@@ -17,6 +18,7 @@ interface ParsedBook {
   selected: boolean;
   status: 'pending' | 'exists' | 'created' | 'error';
   existingId?: string;
+  createdId?: string;
   error?: string;
 }
 
@@ -103,6 +105,7 @@ export default function ImportarLibros() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editAuthor, setEditAuthor] = useState('');
   const [editTitle, setEditTitle] = useState('');
+  const [reverting, setReverting] = useState(false);
 
   async function handleParse() {
     if (!file) return;
@@ -164,18 +167,18 @@ export default function ImportarLibros() {
     for (let i = 0; i < updated.length; i++) {
       if (!updated[i].selected || updated[i].status !== 'pending') continue;
 
-      const { error } = await supabase.from('books').insert({
+      const { data: newBook, error } = await supabase.from('books').insert({
         title: updated[i].title,
         author: updated[i].author,
         pvp: 15,
         status: 'active',
-      });
+      }).select('id').single();
 
       if (error) {
         updated[i] = { ...updated[i], status: 'error', error: error.message };
         errors++;
       } else {
-        updated[i] = { ...updated[i], status: 'created' };
+        updated[i] = { ...updated[i], status: 'created', createdId: newBook?.id };
         created++;
       }
 
@@ -187,6 +190,25 @@ export default function ImportarLibros() {
     toast.success(`${created} libros creados${errors > 0 ? `, ${errors} errores` : ''}`);
   }
 
+  async function handleRevert() {
+    const createdIds = books.filter(b => b.status === 'created' && b.createdId).map(b => b.createdId!);
+    if (createdIds.length === 0) return;
+    setReverting(true);
+    try {
+      // Delete in batches
+      for (let i = 0; i < createdIds.length; i += 50) {
+        const batch = createdIds.slice(i, i + 50);
+        const { error } = await supabase.from('books').delete().in('id', batch);
+        if (error) throw error;
+      }
+      setBooks(prev => prev.map(b => b.status === 'created' ? { ...b, status: 'pending', selected: true, createdId: undefined } : b));
+      toast.success(`${createdIds.length} libros eliminados`);
+    } catch (err: any) {
+      toast.error('Error al revertir: ' + err.message);
+    } finally {
+      setReverting(false);
+    }
+  }
   function toggleAll(checked: boolean) {
     setBooks(prev => prev.map(b => b.status === 'pending' ? { ...b, selected: checked } : b));
   }
@@ -283,6 +305,28 @@ export default function ImportarLibros() {
               <BookPlus className="mr-2 h-4 w-4" />
               {importing ? `Importando… ${progress}%` : `Importar seleccionados (${selectedCount})`}
             </Button>
+            {createdCount > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" disabled={reverting}>
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    {reverting ? 'Revirtiendo…' : `Revertir (${createdCount})`}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Revertir importación?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminarán {createdCount} libros creados en esta importación. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRevert}>Revertir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <div className="relative ml-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
