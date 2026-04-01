@@ -403,6 +403,15 @@ export default function ImportarLibros() {
               {files.length} archivos seleccionados: {files.map(f => f.name).join(', ')}
             </p>
           )}
+          {parsing && parsingProgress && files.length > 1 && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Leyendo archivo {parsingProgress.current}/{parsingProgress.total}: <span className="font-medium">{parsingProgress.fileName}</span>
+              </div>
+              <Progress value={(parsingProgress.current / parsingProgress.total) * 100} className="h-2" />
+            </div>
+          )}
           <p className="text-sm text-muted-foreground">
             Sube uno o varios archivos DOCX con una tabla de dos columnas: Autor y Título.
             Se limpiará automáticamente y se buscará si ya existen libros similares.
