@@ -499,7 +499,13 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               <div className="rounded-md border max-h-[45vh] overflow-y-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={withEmail.filter(a => a.status !== 'sent').every(a => !excludedAuthors.has(a.author))}
+                          onCheckedChange={(checked) => toggleAllVisible(!!checked)}
+                        />
+                      </TableHead>
                       <TableHead>Autor</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead className="text-right">Libros</TableHead>
@@ -509,15 +515,28 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => (
-                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : a.total <= 0 ? 'bg-orange-50 opacity-70' : ''}>
+                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => {
+                      const isNegativeExcluded = a.email && a.total <= 0;
+                      const isManuallyExcluded = a.email && a.total > 0 && excludedAuthors.has(a.author);
+                      const canSend = a.email && a.total > 0 && !excludedAuthors.has(a.author);
+                      return (
+                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : isNegativeExcluded ? 'bg-orange-50 opacity-70' : isManuallyExcluded ? 'opacity-50' : ''}>
+                        <TableCell>
+                          {a.email && a.total > 0 && a.status !== 'sent' ? (
+                            <Checkbox
+                              checked={!excludedAuthors.has(a.author)}
+                              onCheckedChange={() => toggleExclude(a.author)}
+                            />
+                          ) : null}
+                        </TableCell>
                         <TableCell className="font-medium text-sm">{a.author}</TableCell>
                         <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
                         <TableCell className="text-right text-sm">{a.bookCount}</TableCell>
                         <TableCell className="text-right text-sm">{formatEur(a.total)}</TableCell>
                         <TableCell>
-                          {a.email && a.total <= 0 && <Badge variant="outline" className="border-orange-400 text-orange-600 text-xs">Excluido</Badge>}
-                          {a.status === 'pending' && a.email && a.total > 0 && <Badge variant="secondary">Pendiente</Badge>}
+                          {isNegativeExcluded && <Badge variant="outline" className="border-orange-400 text-orange-600 text-xs">≤0€</Badge>}
+                          {isManuallyExcluded && <Badge variant="outline" className="text-xs">Excluido</Badge>}
+                          {a.status === 'pending' && canSend && <Badge variant="secondary">Pendiente</Badge>}
                           {a.status === 'sending' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                           {a.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                           {a.status === 'error' && (
@@ -528,14 +547,14 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                           {!a.email && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
                         </TableCell>
                         <TableCell>
-                          {a.email && a.total > 0 && a.status !== 'sent' && a.status !== 'sending' && (
+                          {canSend && a.status !== 'sent' && a.status !== 'sending' && (
                             <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx, 0)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );})
                   </TableBody>
                 </Table>
               </div>
