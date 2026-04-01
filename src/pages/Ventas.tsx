@@ -9,8 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditableCell } from '@/components/ventas/EditableCell';
 import { MovementFormDialog } from '@/components/ventas/MovementFormDialog';
 import { ExportDialog } from '@/components/ventas/ExportDialog';
+import { ManualMovementsDialog } from '@/components/ventas/ManualMovementsDialog';
 import { MONTHS, getYears } from '@/lib/constants';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, List } from 'lucide-react';
 
 const PAGE_SIZE = 25;
 
@@ -30,6 +31,7 @@ export default function Ventas() {
   const [page, setPage] = useState(0);
   const [showMovForm, setShowMovForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
   const { data, isLoading } = useSalesPage(year, month, debouncedSearch, page);
   const saveMovement = useSaveMovement();
@@ -68,6 +70,9 @@ export default function Ventas() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Contabilidad de Ventas</h1>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowManual(true)}>
+            <List className="mr-2 h-4 w-4" /> Registros manuales
+          </Button>
           <Button variant="outline" onClick={() => setShowExport(true)}>
             <Download className="mr-2 h-4 w-4" /> Exportar Excel
           </Button>
@@ -185,6 +190,7 @@ export default function Ventas() {
 
       <MovementFormDialog open={showMovForm} onOpenChange={setShowMovForm} year={year} />
       <ExportDialog open={showExport} onOpenChange={setShowExport} year={year} />
+      <ManualMovementsDialog open={showManual} onOpenChange={setShowManual} year={year} />
     </div>
   );
 }
