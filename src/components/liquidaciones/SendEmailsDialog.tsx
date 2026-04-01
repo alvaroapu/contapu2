@@ -363,11 +363,36 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     }
   };
 
+  const sendableAuthors = authors.filter(a => a.email && a.total > 0 && !excludedAuthors.has(a.author));
   const withEmail = authors.filter(a => a.email && a.total > 0);
   const withoutEmail = authors.filter(a => !a.email);
   const excludedNegative = authors.filter(a => a.email && a.total <= 0);
+  const manuallyExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
   const sentCount = authors.filter(a => a.status === 'sent').length;
   const errorCount = authors.filter(a => a.status === 'error').length;
+
+  const toggleExclude = (author: string) => {
+    setExcludedAuthors(prev => {
+      const next = new Set(prev);
+      if (next.has(author)) next.delete(author);
+      else next.add(author);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = (include: boolean) => {
+    const visibleAuthors = authors
+      .filter(a => a.email && a.total > 0 && a.status !== 'sent')
+      .filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase()));
+    setExcludedAuthors(prev => {
+      const next = new Set(prev);
+      for (const a of visibleAuthors) {
+        if (include) next.delete(a.author);
+        else next.add(a.author);
+      }
+      return next;
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
