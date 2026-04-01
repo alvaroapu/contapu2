@@ -63,17 +63,20 @@ export function MergeBookDialog({ open, onOpenChange, preselectedIds = [] }: Pro
     }
   }
 
+  function resetState() {
+    setSourceBook(null);
+    setTargetBook(null);
+    setSearchSource('');
+    setSearchTarget('');
+    setSourceResults([]);
+    setTargetResults([]);
+    setStep('select');
+    setMerging(false);
+  }
+
   function handleOpenChange(v: boolean) {
-    if (v) {
-      setSourceBook(null);
-      setTargetBook(null);
-      setSearchSource('');
-      setSearchTarget('');
-      setSourceResults([]);
-      setTargetResults([]);
-      setStep('select');
-      if (preselectedIds.length >= 2) loadPreselected();
-    }
+    resetState();
+    if (v && preselectedIds.length >= 2) loadPreselected();
     onOpenChange(v);
   }
 
