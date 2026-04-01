@@ -70,6 +70,9 @@ export default function Ventas() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Contabilidad de Ventas</h1>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowManual(true)}>
+            <List className="mr-2 h-4 w-4" /> Registros manuales
+          </Button>
           <Button variant="outline" onClick={() => setShowExport(true)}>
             <Download className="mr-2 h-4 w-4" /> Exportar Excel
           </Button>
