@@ -135,6 +135,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       };
     });
 
+    setFilteredItems(activeItems);
     setAuthors(result);
     setLoading(false);
   };
