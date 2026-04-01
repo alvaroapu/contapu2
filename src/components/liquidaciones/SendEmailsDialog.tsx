@@ -450,15 +450,38 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
-          <Button variant="secondary" onClick={handleTestPdf} disabled={testingPdf || sending || authors.length === 0}>
-            {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-            Probar PDF
-          </Button>
-          <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
-            {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Enviar a {withEmail.length - sentCount} autor(es)
-          </Button>
+        <div className="space-y-3 w-full">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label htmlFor="test-email" className="text-xs text-muted-foreground">
+                Enviar email de prueba (usa datos del primer autor)
+              </Label>
+              <Input
+                id="test-email"
+                type="email"
+                placeholder="tu@email.com"
+                value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <Button variant="secondary" onClick={handleTestEmail} disabled={sendingTest || sending || authors.length === 0 || !testEmail.trim()}>
+              {sendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Enviar prueba
+            </Button>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+            <Button variant="secondary" onClick={handleTestPdf} disabled={testingPdf || sending || authors.length === 0}>
+              {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+              Probar PDF
+            </Button>
+            <Button onClick={handleSendAll} disabled={sending || withEmail.length === 0 || sentCount === withEmail.length}>
+              {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enviar a {withEmail.length - sentCount} autor(es)
+            </Button>
+          </div>
+        </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
