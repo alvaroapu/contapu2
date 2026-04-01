@@ -31,6 +31,7 @@ export default function Ventas() {
   const [page, setPage] = useState(0);
   const [showMovForm, setShowMovForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
   const { data, isLoading } = useSalesPage(year, month, debouncedSearch, page);
   const saveMovement = useSaveMovement();
