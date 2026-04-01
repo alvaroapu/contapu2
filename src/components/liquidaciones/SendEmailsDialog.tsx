@@ -482,13 +482,14 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                   </TableHeader>
                   <TableBody>
                     {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => (
-                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : ''}>
+                      <TableRow key={a.author} className={!a.email ? 'bg-muted/50' : a.total <= 0 ? 'bg-orange-50 opacity-70' : ''}>
                         <TableCell className="font-medium text-sm">{a.author}</TableCell>
                         <TableCell className="text-sm">{a.email ?? <span className="text-muted-foreground italic">Sin email</span>}</TableCell>
                         <TableCell className="text-right text-sm">{a.bookCount}</TableCell>
                         <TableCell className="text-right text-sm">{formatEur(a.total)}</TableCell>
                         <TableCell>
-                          {a.status === 'pending' && a.email && <Badge variant="secondary">Pendiente</Badge>}
+                          {a.email && a.total <= 0 && <Badge variant="outline" className="border-orange-400 text-orange-600 text-xs">Excluido</Badge>}
+                          {a.status === 'pending' && a.email && a.total > 0 && <Badge variant="secondary">Pendiente</Badge>}
                           {a.status === 'sending' && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                           {a.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
                           {a.status === 'error' && (
@@ -499,7 +500,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                           {!a.email && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
                         </TableCell>
                         <TableCell>
-                          {a.email && a.status !== 'sent' && a.status !== 'sending' && (
+                          {a.email && a.total > 0 && a.status !== 'sent' && a.status !== 'sending' && (
                             <Button variant="ghost" size="sm" onClick={() => sendEmail(a, a.originalIdx, 0)} disabled={sending}>
                               <Mail className="h-3 w-3" />
                             </Button>
