@@ -23,6 +23,7 @@ export interface BookFilters {
   status: string;
   author: string;
   missingIsbn?: boolean;
+  missingEmail?: boolean;
   page: number;
   pageSize: number;
   sortColumn: string;
