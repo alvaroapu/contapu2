@@ -85,6 +85,38 @@ export function useSaveMovement() {
   });
 }
 
+export function useManualMovements(year: number) {
+  return useQuery({
+    queryKey: ['manual-movements', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales_movements')
+        .select('id, book_id, distributor_id, month, type, quantity, notes, created_at, books!inner(title), distributors!inner(name)')
+        .eq('year', year)
+        .is('import_batch_id', null)
+        .order('created_at', { ascending: false }) as any;
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+}
+
+export function useDeleteMovement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('sales_movements').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sales'] });
+      qc.invalidateQueries({ queryKey: ['manual-movements'] });
+      toast.success('Movimiento eliminado');
+    },
+    onError: (e: any) => toast.error(e.message ?? 'Error al eliminar'),
+  });
+}
+
 export async function fetchAllSalesForYear(year: number) {
   let all: any[] = [];
   let from = 0;
