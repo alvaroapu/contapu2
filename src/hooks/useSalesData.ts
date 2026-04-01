@@ -85,19 +85,46 @@ export function useSaveMovement() {
   });
 }
 
-export function useManualMovements(year: number) {
+export function useAllMovements(year: number) {
   return useQuery({
-    queryKey: ['manual-movements', year],
+    queryKey: ['all-movements', year],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sales_movements')
-        .select('id, book_id, distributor_id, month, type, quantity, notes, created_at, books!inner(title), distributors!inner(name)')
-        .eq('year', year)
-        .is('import_batch_id', null)
-        .order('created_at', { ascending: false }) as any;
-      if (error) throw error;
-      return (data ?? []) as any[];
+      let all: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('sales_movements')
+          .select('id, book_id, distributor_id, month, type, quantity, notes, import_batch_id, created_at, books!inner(title), distributors!inner(name)')
+          .eq('year', year)
+          .order('created_at', { ascending: false })
+          .range(from, from + 999) as any;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < 1000) break;
+        from += 1000;
+      }
+      return all;
     },
+  });
+}
+
+export function useUpdateMovement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { id: string; quantity: number; notes?: string | null }) => {
+      const { error } = await supabase
+        .from('sales_movements')
+        .update({ quantity: p.quantity, notes: p.notes ?? null } as any)
+        .eq('id', p.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sales'] });
+      qc.invalidateQueries({ queryKey: ['all-movements'] });
+      toast.success('Movimiento actualizado');
+    },
+    onError: (e: any) => toast.error(e.message ?? 'Error al actualizar'),
   });
 }
 
@@ -110,7 +137,7 @@ export function useDeleteMovement() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sales'] });
-      qc.invalidateQueries({ queryKey: ['manual-movements'] });
+      qc.invalidateQueries({ queryKey: ['all-movements'] });
       toast.success('Movimiento eliminado');
     },
     onError: (e: any) => toast.error(e.message ?? 'Error al eliminar'),
