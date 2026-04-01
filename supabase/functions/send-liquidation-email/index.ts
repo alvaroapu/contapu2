@@ -1,3 +1,5 @@
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -73,7 +75,7 @@ Deno.serve(async (req) => {
     } = await req.json();
 
     // --- Convert DOCX to PDF via Gotenberg ---
-    let pdfBase64: string | null = null;
+    let pdfBuffer: Uint8Array | null = null;
     const sanitizedAuthor = (author || "test")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -86,19 +88,20 @@ Deno.serve(async (req) => {
       if (!docxRes.ok) {
         throw new Error(`Failed to fetch DOCX from storage: ${docxRes.status}`);
       }
-      const docxBuffer = await docxRes.arrayBuffer();
-      const pdfBuffer = await convertDocxToPdf(docxBuffer);
-      pdfBase64 = arrayBufferToBase64(pdfBuffer);
+      const docxArrayBuffer = await docxRes.arrayBuffer();
+      const pdfArrayBuffer = await convertDocxToPdf(docxArrayBuffer);
+      pdfBuffer = new Uint8Array(pdfArrayBuffer);
     }
 
     // Test mode: return the PDF without sending email
     if (testOnly) {
-      if (!pdfBase64) {
+      if (!pdfBuffer) {
         return new Response(
           JSON.stringify({ error: "No DOCX URL provided for test conversion" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
+      const pdfBase64 = arrayBufferToBase64(pdfBuffer.buffer);
       return new Response(
         JSON.stringify({ success: true, pdfBase64, pdfFileName }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -112,13 +115,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const authToken = Deno.env.get("ACUMBAMAIL_AUTH_TOKEN");
-    const defaultFromEmail = Deno.env.get("ACUMBAMAIL_FROM_EMAIL");
-    const fromEmail = customFromEmail || defaultFromEmail;
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+    const fromEmail = customFromEmail || smtpUser;
 
-    if (!authToken || !fromEmail) {
+    if (!smtpUser || !smtpPass) {
       return new Response(
-        JSON.stringify({ error: "Acumbamail credentials not configured" }),
+        JSON.stringify({ error: "SMTP credentials not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -139,7 +142,7 @@ Deno.serve(async (req) => {
   <h3 style="color: #1a56db; border-bottom: 2px solid #1a56db; padding-bottom: 5px;">Resumen de ventas</h3>
   ${summaryHtml}
 
-  ${pdfBase64 ? `<p style="margin-top: 20px; color: #666; font-size: 13px;">📎 Se adjunta el informe completo en formato PDF.</p>` : ""}
+  ${pdfBuffer ? `<p style="margin-top: 20px; color: #666; font-size: 13px;">📎 Se adjunta el informe completo en formato PDF.</p>` : ""}
 
   ${outroHtml ? `<div style="margin-top: 20px;">${outroHtml}</div>` : ""}
 
@@ -150,47 +153,49 @@ Deno.serve(async (req) => {
 
     const emailSubject = subject || `Liquidación ${liquidationYear} - Apuleyo Ediciones`;
 
-    const formData = new FormData();
-    formData.append("auth_token", authToken);
-    formData.append("from_email", fromEmail);
-    formData.append("to_email", authorEmail);
-    formData.append("subject", emailSubject);
-    formData.append("body", emailBody);
-
-    // Attach the PDF if conversion succeeded
-    if (pdfBase64) {
-      formData.append(
-        "attachment",
-        new Blob([Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0))], {
-          type: "application/pdf",
-        }),
-        pdfFileName,
-      );
+    // Build attachments array for denomailer
+    const attachments: Array<{ filename: string; content: Uint8Array; contentType: string; encoding: string }> = [];
+    if (pdfBuffer) {
+      attachments.push({
+        filename: pdfFileName,
+        content: pdfBuffer,
+        contentType: "application/pdf",
+        encoding: "binary",
+      });
     }
 
-    const res = await fetch("https://acumbamail.com/api/1/sendOne/", {
-      method: "POST",
-      body: formData,
+    // Send via SMTP (IONOS)
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.ionos.es",
+        port: 587,
+        tls: true,
+        auth: {
+          username: smtpUser,
+          password: smtpPass,
+        },
+      },
     });
 
-    const resText = await res.text();
+    await client.send({
+      from: fromEmail!,
+      to: authorEmail,
+      subject: emailSubject,
+      html: emailBody,
+      attachments,
+    });
 
-    if (!res.ok && res.status !== 200 && res.status !== 201) {
-      console.error("Acumbamail error:", res.status, resText);
-      return new Response(
-        JSON.stringify({ error: `Acumbamail error: ${res.status}`, details: resText }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    await client.close();
 
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-  } catch (err) {
-    console.error("Error:", err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Error:", message);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
