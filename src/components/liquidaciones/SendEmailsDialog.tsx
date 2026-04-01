@@ -209,7 +209,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
       const sanitizedName = firstAuthor.author
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
         .replace(/_+/g, '_');
       const fileName = `${liquidation.year}/${sanitizedName}.docx`;
 
@@ -246,6 +246,56 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       toast.error(`Error en conversión PDF: ${err.message}`);
     } finally {
       setTestingPdf(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmail.trim()) {
+      toast.error('Introduce un email de prueba');
+      return;
+    }
+    const firstAuthor = authors[0];
+    if (!firstAuthor) {
+      toast.error('No hay autores disponibles para la prueba');
+      return;
+    }
+    setSendingTest(true);
+    try {
+      const blob = await generateAuthorDOCX(firstAuthor.author, allItems, liquidation);
+      const sanitizedName = firstAuthor.author
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/_+/g, '_');
+      const fileName = `${liquidation.year}/${sanitizedName}.docx`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('liquidation-docs')
+        .upload(fileName, blob, { upsert: true, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
+
+      const { data: urlData } = supabase.storage.from('liquidation-docs').getPublicUrl(fileName);
+      const summaryHtml = buildSummaryHtml(firstAuthor.author);
+
+      const { error } = await supabase.functions.invoke('send-liquidation-email', {
+        body: {
+          author: firstAuthor.author,
+          authorEmail: testEmail.trim(),
+          liquidationYear: liquidation.year,
+          summaryHtml,
+          docxUrl: urlData.publicUrl,
+          subject: resolveText(subject, firstAuthor.author),
+          introText: resolveText(introText, firstAuthor.author),
+          outroText: resolveText(outroText, firstAuthor.author),
+          ...(fromEmail.trim() ? { fromEmail: fromEmail.trim() } : {}),
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Email de prueba enviado a ${testEmail.trim()} (datos de "${firstAuthor.author}")`);
+    } catch (err: any) {
+      toast.error(`Error en envío de prueba: ${err.message}`);
+    } finally {
+      setSendingTest(false);
     }
   };
 
