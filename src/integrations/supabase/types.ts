@@ -14,10 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      book_import_batches: {
+        Row: {
+          books_created: number
+          file_name: string
+          id: string
+          imported_at: string
+          imported_by: string | null
+          reverted: boolean
+          reverted_at: string | null
+        }
+        Insert: {
+          books_created?: number
+          file_name: string
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          reverted?: boolean
+          reverted_at?: string | null
+        }
+        Update: {
+          books_created?: number
+          file_name?: string
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          reverted?: boolean
+          reverted_at?: string | null
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           author: string
           author_email: string | null
+          book_import_batch_id: string | null
           created_at: string | null
           ean: string | null
           id: string
@@ -32,6 +63,7 @@ export type Database = {
         Insert: {
           author: string
           author_email?: string | null
+          book_import_batch_id?: string | null
           created_at?: string | null
           ean?: string | null
           id?: string
@@ -46,6 +78,7 @@ export type Database = {
         Update: {
           author?: string
           author_email?: string | null
+          book_import_batch_id?: string | null
           created_at?: string | null
           ean?: string | null
           id?: string
@@ -57,7 +90,15 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "books_book_import_batch_id_fkey"
+            columns: ["book_import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "book_import_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       distributors: {
         Row: {
