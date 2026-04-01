@@ -98,6 +98,7 @@ export default function ImportarLibros() {
   const [files, setFiles] = useState<File[]>([]);
   const [books, setBooks] = useState<ParsedBook[]>([]);
   const [parsing, setParsing] = useState(false);
+  const [parsingProgress, setParsingProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
   const [checking, setChecking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -126,7 +127,9 @@ export default function ImportarLibros() {
       const allBooks: ParsedBook[] = [];
       const seen = new Set<string>();
 
-      for (const f of files) {
+      for (let fi = 0; fi < files.length; fi++) {
+        const f = files[fi];
+        setParsingProgress({ current: fi + 1, total: files.length, fileName: f.name });
         const parsed = await parseDocxBooks(f);
         for (const book of parsed) {
           const key = `${book.author.toLowerCase()}::${book.title.toLowerCase()}`;
@@ -149,6 +152,7 @@ export default function ImportarLibros() {
       toast.error('Error al leer los archivos: ' + err.message);
     } finally {
       setParsing(false);
+      setParsingProgress(null);
     }
   }
 
@@ -398,6 +402,15 @@ export default function ImportarLibros() {
             <p className="text-sm text-muted-foreground">
               {files.length} archivos seleccionados: {files.map(f => f.name).join(', ')}
             </p>
+          )}
+          {parsing && parsingProgress && files.length > 1 && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Leyendo archivo {parsingProgress.current}/{parsingProgress.total}: <span className="font-medium">{parsingProgress.fileName}</span>
+              </div>
+              <Progress value={(parsingProgress.current / parsingProgress.total) * 100} className="h-2" />
+            </div>
           )}
           <p className="text-sm text-muted-foreground">
             Sube uno o varios archivos DOCX con una tabla de dos columnas: Autor y Título.
