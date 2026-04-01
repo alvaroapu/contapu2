@@ -236,7 +236,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
-      .filter(a => a.email && a.status !== 'sent' && a.total > 0);
+      .filter(a => a.email && a.status !== 'sent' && a.total > 0 && !excludedAuthors.has(a.author));
 
     const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
 
