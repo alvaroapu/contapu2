@@ -209,7 +209,7 @@ export default function ImportarLibros() {
       setReverting(false);
     }
   }
-
+  function toggleAll(checked: boolean) {
     setBooks(prev => prev.map(b => b.status === 'pending' ? { ...b, selected: checked } : b));
   }
 
