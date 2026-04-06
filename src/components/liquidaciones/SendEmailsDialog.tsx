@@ -34,7 +34,8 @@ interface LogEntry {
   timestamp: string;
   author: string;
   email: string;
-  status: 'sent' | 'error';
+  status: 'sent' | 'error' | 'skipped';
+  reason?: string;
   error?: string;
   batch: number;
 }
