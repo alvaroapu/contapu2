@@ -39,9 +39,10 @@ export default function LiquidacionDetalle() {
   const [authorFilter, setAuthorFilter] = useState('');
   const [onlyWithSales, setOnlyWithSales] = useState(false);
   const [negativeFilter, setNegativeFilter] = useState<'all' | 'only' | 'hide'>('all');
+  const [sortOrder, setSortOrder] = useState<string>('author_asc');
   const [page, setPage] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
-  const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page);
+  const { data: items, isLoading: itemsLoading } = useLiquidationItems(id!, debouncedSearch, authorFilter, onlyWithSales, page, sortOrder);
   const { data: authors } = useLiquidationAuthors(id!);
   const { data: globalTotals } = useLiquidationTotals(id!);
   const finalize = useFinalizeLiquidation();
@@ -277,6 +278,16 @@ export default function LiquidacionDetalle() {
               <SelectItem value="all">Todos los importes</SelectItem>
               <SelectItem value="hide">Ocultar negativos</SelectItem>
               <SelectItem value="only">Solo negativos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-48">
+          <Select value={sortOrder} onValueChange={v => { setSortOrder(v); setPage(0); }}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="author_asc">Ordenar por autor</SelectItem>
+              <SelectItem value="amount_desc">Mayor importe</SelectItem>
+              <SelectItem value="amount_asc">Menor importe</SelectItem>
             </SelectContent>
           </Select>
         </div>
