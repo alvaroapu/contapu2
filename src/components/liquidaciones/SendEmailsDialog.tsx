@@ -66,6 +66,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [sendLog, setSendLog] = useState<LogEntry[]>([]);
   const [sendProgress, setSendProgress] = useState('');
   const [excludedAuthors, setExcludedAuthors] = useState<Set<string>>(new Set());
+  const [recipientFilter, setRecipientFilter] = useState<'all' | 'with-email' | 'without-email'>('all');
 
   useEffect(() => {
     if (!open) return;
