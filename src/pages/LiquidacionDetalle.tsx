@@ -72,7 +72,7 @@ export default function LiquidacionDetalle() {
       map.set(item.author, list);
     }
     return [...map.entries()].map(([author, books]) => ({ author, books }));
-  }, [items, negativeFilter]);
+  }, [items, negativeFilter, onlyWithSales]);
 
   // Summary
   const summary = useMemo(() => {
