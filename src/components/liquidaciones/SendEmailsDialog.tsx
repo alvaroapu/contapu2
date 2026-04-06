@@ -66,6 +66,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [sendLog, setSendLog] = useState<LogEntry[]>([]);
   const [sendProgress, setSendProgress] = useState('');
   const [excludedAuthors, setExcludedAuthors] = useState<Set<string>>(new Set());
+  const [recipientFilter, setRecipientFilter] = useState<'all' | 'with-email' | 'without-email'>('all');
 
   useEffect(() => {
     if (!open) return;
@@ -365,7 +366,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const sendableAuthors = authors.filter(a => a.email && a.total > 0 && !excludedAuthors.has(a.author));
   const withEmail = authors.filter(a => a.email && a.total > 0);
-  const withoutEmail = authors.filter(a => !a.email);
+  const withoutEmail = authors.filter(a => !a.email && a.total > 0);
   const excludedNegative = authors.filter(a => a.email && a.total <= 0);
   const manuallyExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
   const sentCount = authors.filter(a => a.status === 'sent').length;
@@ -486,14 +487,27 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                 {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
               </div>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar autor..."
-                  value={authorSearch}
-                  onChange={e => setAuthorSearch(e.target.value)}
-                  className="pl-9"
-                />
+              <div className="flex gap-2 items-center">
+                <div className="flex gap-1">
+                  <Button variant={recipientFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setRecipientFilter('all')}>
+                    Todos ({authors.filter(a => a.total > 0).length})
+                  </Button>
+                  <Button variant={recipientFilter === 'with-email' ? 'default' : 'outline'} size="sm" onClick={() => setRecipientFilter('with-email')}>
+                    Con email ({withEmail.length})
+                  </Button>
+                  <Button variant={recipientFilter === 'without-email' ? 'default' : 'outline'} size="sm" onClick={() => setRecipientFilter('without-email')}>
+                    Sin email ({withoutEmail.length})
+                  </Button>
+                </div>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar autor..."
+                    value={authorSearch}
+                    onChange={e => setAuthorSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
 
               <div className="rounded-md border max-h-[45vh] overflow-y-auto">
@@ -515,7 +529,16 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => {
+                    {authors
+                      .map((a, idx) => ({ ...a, originalIdx: idx }))
+                      .filter(a => a.total > 0) // hide ≤0€ authors without email
+                      .filter(a => {
+                        if (recipientFilter === 'with-email') return !!a.email;
+                        if (recipientFilter === 'without-email') return !a.email;
+                        return true;
+                      })
+                      .filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase()))
+                      .map(a => {
                       const isNegativeExcluded = a.email && a.total <= 0;
                       const isManuallyExcluded = a.email && a.total > 0 && excludedAuthors.has(a.author);
                       const canSend = a.email && a.total > 0 && !excludedAuthors.has(a.author);
