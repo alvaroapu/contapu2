@@ -259,6 +259,25 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
       }
     }
+    // Add skipped authors (no email) to the log
+    const noEmailAuthors = authors.filter(a => !a.email && a.total > 0);
+    const negativeAuthors = authors.filter(a => a.total <= 0);
+    const manualExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
+    const now = new Date().toLocaleTimeString('es-ES');
+
+    setSendLog(prev => [
+      ...prev,
+      ...noEmailAuthors.map(a => ({
+        timestamp: now, author: a.author, email: '—', status: 'skipped' as const, reason: 'Sin email', batch: 0,
+      })),
+      ...negativeAuthors.map(a => ({
+        timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: `Saldo ≤0 (${formatEur(a.total)})`, batch: 0,
+      })),
+      ...manualExcluded.map(a => ({
+        timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: 'Excluido manualmente', batch: 0,
+      })),
+    ]);
+
     setSendProgress('');
     setSending(false);
     toast.success('Proceso completado');
