@@ -34,7 +34,8 @@ interface LogEntry {
   timestamp: string;
   author: string;
   email: string;
-  status: 'sent' | 'error';
+  status: 'sent' | 'error' | 'skipped';
+  reason?: string;
   error?: string;
   batch: number;
 }
@@ -258,6 +259,25 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
       }
     }
+    // Add skipped authors (no email) to the log
+    const noEmailAuthors = authors.filter(a => !a.email && a.total > 0);
+    const negativeAuthors = authors.filter(a => a.total <= 0);
+    const manualExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
+    const now = new Date().toLocaleTimeString('es-ES');
+
+    setSendLog(prev => [
+      ...prev,
+      ...noEmailAuthors.map(a => ({
+        timestamp: now, author: a.author, email: '—', status: 'skipped' as const, reason: 'Sin email', batch: 0,
+      })),
+      ...negativeAuthors.map(a => ({
+        timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: `Saldo ≤0 (${formatEur(a.total)})`, batch: 0,
+      })),
+      ...manualExcluded.map(a => ({
+        timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: 'Excluido manualmente', batch: 0,
+      })),
+    ]);
+
     setSendProgress('');
     setSending(false);
     toast.success('Proceso completado');
@@ -598,42 +618,43 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-3 text-sm flex-wrap">
-                    <Badge variant="default">{sendLog.filter(l => l.status === 'sent').length} enviados</Badge>
-                    {sendLog.filter(l => l.status === 'error').length > 0 && (
-                      <Badge variant="destructive">{sendLog.filter(l => l.status === 'error').length} con error</Badge>
-                    )}
-                  </div>
-                  <div className="rounded-md border max-h-[45vh] overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-20">Hora</TableHead>
-                          <TableHead className="w-16">Lote</TableHead>
-                          <TableHead>Autor</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Estado</TableHead>
-                          <TableHead>Error</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {sendLog.map((entry, idx) => (
-                          <TableRow key={idx} className={entry.status === 'error' ? 'bg-destructive/10' : ''}>
-                            <TableCell className="text-xs font-mono">{entry.timestamp}</TableCell>
-                            <TableCell className="text-xs text-center">{entry.batch}</TableCell>
-                            <TableCell className="text-sm font-medium">{entry.author}</TableCell>
-                            <TableCell className="text-sm">{entry.email}</TableCell>
-                            <TableCell>
-                              {entry.status === 'sent' ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <XCircle className="h-4 w-4 text-destructive" />
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs text-destructive max-w-[200px] truncate" title={entry.error}>
-                              {entry.error ?? '—'}
-                            </TableCell>
-                          </TableRow>
+                   <div className="flex gap-3 text-sm flex-wrap">
+                     <Badge variant="default">{sendLog.filter(l => l.status === 'sent').length} enviados</Badge>
+                     {sendLog.filter(l => l.status === 'error').length > 0 && (
+                       <Badge variant="destructive">{sendLog.filter(l => l.status === 'error').length} con error</Badge>
+                     )}
+                     {sendLog.filter(l => l.status === 'skipped').length > 0 && (
+                       <Badge variant="outline" className="border-orange-400 text-orange-600">{sendLog.filter(l => l.status === 'skipped').length} no enviados</Badge>
+                     )}
+                   </div>
+                   <div className="rounded-md border max-h-[45vh] overflow-y-auto">
+                     <Table>
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead className="w-20">Hora</TableHead>
+                           <TableHead className="w-16">Lote</TableHead>
+                           <TableHead>Autor</TableHead>
+                           <TableHead>Email</TableHead>
+                           <TableHead>Estado</TableHead>
+                           <TableHead>Motivo</TableHead>
+                         </TableRow>
+                       </TableHeader>
+                       <TableBody>
+                         {sendLog.map((entry, idx) => (
+                           <TableRow key={idx} className={entry.status === 'error' ? 'bg-destructive/10' : entry.status === 'skipped' ? 'bg-orange-50' : ''}>
+                             <TableCell className="text-xs font-mono">{entry.timestamp}</TableCell>
+                             <TableCell className="text-xs text-center">{entry.batch || '—'}</TableCell>
+                             <TableCell className="text-sm font-medium">{entry.author}</TableCell>
+                             <TableCell className="text-sm">{entry.email}</TableCell>
+                             <TableCell>
+                               {entry.status === 'sent' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                               {entry.status === 'error' && <XCircle className="h-4 w-4 text-destructive" />}
+                               {entry.status === 'skipped' && <AlertCircle className="h-4 w-4 text-orange-500" />}
+                             </TableCell>
+                             <TableCell className="text-xs max-w-[200px] truncate" title={entry.error || entry.reason}>
+                               {entry.error || entry.reason || '—'}
+                             </TableCell>
+                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
