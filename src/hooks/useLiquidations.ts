@@ -65,10 +65,11 @@ export function useLiquidationItems(
   search: string,
   authorFilter: string,
   onlyWithSales: boolean,
-  page: number
+  page: number,
+  sort: string = 'author_asc'
 ) {
   return useQuery({
-    queryKey: ['liquidation-items', liquidationId, search, authorFilter, onlyWithSales, page],
+    queryKey: ['liquidation-items', liquidationId, search, authorFilter, onlyWithSales, page, sort],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('get_liquidation_items_page', {
         p_liquidation_id: liquidationId,
@@ -77,6 +78,7 @@ export function useLiquidationItems(
         p_only_with_sales: onlyWithSales,
         p_limit: 20,
         p_offset: page * 20,
+        p_sort: sort,
       });
       if (error) throw error;
       return (data ?? []) as LiquidationItem[];

@@ -400,32 +400,60 @@ export type Database = {
           total_units_sold: number
         }[]
       }
-      get_liquidation_items_page: {
-        Args: {
-          p_author_filter?: string
-          p_limit?: number
-          p_liquidation_id: string
-          p_offset?: number
-          p_only_with_sales?: boolean
-          p_search?: string
-        }
-        Returns: {
-          author: string
-          book_id: string
-          book_title: string
-          distributor_amount: number
-          distributor_units: number
-          item_id: string
-          online_amount: number
-          online_units: number
-          publication_date: string
-          pvp: number
-          school_amount: number
-          school_units: number
-          total_amount: number
-          total_authors: number
-        }[]
-      }
+      get_liquidation_items_page:
+        | {
+            Args: {
+              p_author_filter?: string
+              p_limit?: number
+              p_liquidation_id: string
+              p_offset?: number
+              p_only_with_sales?: boolean
+              p_search?: string
+            }
+            Returns: {
+              author: string
+              book_id: string
+              book_title: string
+              distributor_amount: number
+              distributor_units: number
+              item_id: string
+              online_amount: number
+              online_units: number
+              publication_date: string
+              pvp: number
+              school_amount: number
+              school_units: number
+              total_amount: number
+              total_authors: number
+            }[]
+          }
+        | {
+            Args: {
+              p_author_filter?: string
+              p_limit?: number
+              p_liquidation_id: string
+              p_offset?: number
+              p_only_with_sales?: boolean
+              p_search?: string
+              p_sort?: string
+            }
+            Returns: {
+              author: string
+              book_id: string
+              book_title: string
+              distributor_amount: number
+              distributor_units: number
+              item_id: string
+              online_amount: number
+              online_units: number
+              publication_date: string
+              pvp: number
+              school_amount: number
+              school_units: number
+              total_amount: number
+              total_authors: number
+            }[]
+          }
       get_liquidation_totals: {
         Args: { p_liquidation_id: string }
         Returns: {
