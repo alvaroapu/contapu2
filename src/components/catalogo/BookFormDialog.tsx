@@ -87,7 +87,7 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
   };
 
   const filteredAuthors = authors.filter((a) =>
-    a.toLowerCase().includes(authorSearch.toLowerCase())
+    normalizeSearch(a).includes(normalizeSearch(authorSearch))
   );
 
   return (
