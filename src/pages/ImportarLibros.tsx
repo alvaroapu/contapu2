@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { normalizeSearch } from '@/lib/utils';
 import * as mammoth from 'mammoth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
