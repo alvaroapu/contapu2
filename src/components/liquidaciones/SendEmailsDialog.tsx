@@ -487,14 +487,27 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                 {errorCount > 0 && <Badge variant="destructive">{errorCount} con error</Badge>}
               </div>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar autor..."
-                  value={authorSearch}
-                  onChange={e => setAuthorSearch(e.target.value)}
-                  className="pl-9"
-                />
+              <div className="flex gap-2 items-center">
+                <div className="flex gap-1">
+                  <Button variant={recipientFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setRecipientFilter('all')}>
+                    Todos ({authors.filter(a => a.total > 0).length})
+                  </Button>
+                  <Button variant={recipientFilter === 'with-email' ? 'default' : 'outline'} size="sm" onClick={() => setRecipientFilter('with-email')}>
+                    Con email ({withEmail.length})
+                  </Button>
+                  <Button variant={recipientFilter === 'without-email' ? 'default' : 'outline'} size="sm" onClick={() => setRecipientFilter('without-email')}>
+                    Sin email ({withoutEmail.length})
+                  </Button>
+                </div>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar autor..."
+                    value={authorSearch}
+                    onChange={e => setAuthorSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
 
               <div className="rounded-md border max-h-[45vh] overflow-y-auto">
