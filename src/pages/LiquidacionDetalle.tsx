@@ -58,11 +58,13 @@ export default function LiquidacionDetalle() {
   // Group items by author for display
   const grouped = useMemo(() => {
     if (!items) return [];
-    const filtered = negativeFilter === 'hide'
+    let filtered = negativeFilter === 'hide'
       ? items.filter(i => i.total_amount >= 0)
       : negativeFilter === 'only'
         ? items.filter(i => i.total_amount < 0)
         : items;
+    // When "Solo con ventas" is active, also hide negative amounts
+    if (onlyWithSales) filtered = filtered.filter(i => i.total_amount >= 0);
     const map = new Map<string, LiquidationItem[]>();
     for (const item of filtered) {
       const list = map.get(item.author) ?? [];
@@ -70,7 +72,7 @@ export default function LiquidacionDetalle() {
       map.set(item.author, list);
     }
     return [...map.entries()].map(([author, books]) => ({ author, books }));
-  }, [items, negativeFilter]);
+  }, [items, negativeFilter, onlyWithSales]);
 
   // Summary
   const summary = useMemo(() => {
