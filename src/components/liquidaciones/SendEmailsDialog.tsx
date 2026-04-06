@@ -529,7 +529,16 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {authors.map((a, idx) => ({ ...a, originalIdx: idx })).filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase())).map(a => {
+                    {authors
+                      .map((a, idx) => ({ ...a, originalIdx: idx }))
+                      .filter(a => a.total > 0) // hide ≤0€ authors without email
+                      .filter(a => {
+                        if (recipientFilter === 'with-email') return !!a.email;
+                        if (recipientFilter === 'without-email') return !a.email;
+                        return true;
+                      })
+                      .filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase()))
+                      .map(a => {
                       const isNegativeExcluded = a.email && a.total <= 0;
                       const isManuallyExcluded = a.email && a.total > 0 && excludedAuthors.has(a.author);
                       const canSend = a.email && a.total > 0 && !excludedAuthors.has(a.author);
