@@ -231,7 +231,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     setSendLog([]);
     setActiveTab('log');
     const BATCH_SIZE = 10;
-    const BATCH_DELAY_MS = 3000;
+    const BATCH_DELAY_MS = 20000;
     const EMAIL_DELAY_MS = 500;
 
   const toSend = authors
