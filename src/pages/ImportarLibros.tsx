@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { normalizeSearch } from '@/lib/utils';
 import * as mammoth from 'mammoth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -375,7 +376,7 @@ export default function ImportarLibros() {
   const createdCount = books.filter(b => b.status === 'created').length;
 
   const filteredBooks = search
-    ? books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()) || b.author.toLowerCase().includes(search.toLowerCase()))
+    ? books.filter(b => normalizeSearch(b.title).includes(normalizeSearch(search)) || normalizeSearch(b.author).includes(normalizeSearch(search)))
     : books;
 
   return (

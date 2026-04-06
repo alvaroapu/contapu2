@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { normalizeSearch } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -404,7 +405,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const toggleAllVisible = (include: boolean) => {
     const visibleAuthors = authors
       .filter(a => a.email && a.total > 0 && a.status !== 'sent')
-      .filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase()));
+      .filter(a => !authorSearch || normalizeSearch(a.author).includes(normalizeSearch(authorSearch)));
     setExcludedAuthors(prev => {
       const next = new Set(prev);
       for (const a of visibleAuthors) {
@@ -557,7 +558,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                         if (recipientFilter === 'without-email') return !a.email;
                         return true;
                       })
-                      .filter(a => !authorSearch || a.author.toLowerCase().includes(authorSearch.toLowerCase()))
+                      .filter(a => !authorSearch || normalizeSearch(a.author).includes(normalizeSearch(authorSearch)))
                       .map(a => {
                       const isNegativeExcluded = a.email && a.total <= 0;
                       const isManuallyExcluded = a.email && a.total > 0 && excludedAuthors.has(a.author);

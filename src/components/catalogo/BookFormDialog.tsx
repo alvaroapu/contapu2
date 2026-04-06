@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { normalizeSearch } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,7 +88,7 @@ export function BookFormDialog({ open, onOpenChange, book }: Props) {
   };
 
   const filteredAuthors = authors.filter((a) =>
-    a.toLowerCase().includes(authorSearch.toLowerCase())
+    normalizeSearch(a).includes(normalizeSearch(authorSearch))
   );
 
   return (
