@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.get_liquidation_items_page(uuid, text, text, boolean, integer, integer);
