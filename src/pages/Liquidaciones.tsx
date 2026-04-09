@@ -3,20 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Eye, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { LiquidacionFormDialog } from '@/components/liquidaciones/LiquidacionFormDialog';
-import { useLiquidationsList, useDeleteLiquidation } from '@/hooks/useLiquidations';
+import { useLiquidationsList, useDeleteLiquidation, useTogglePaid } from '@/hooks/useLiquidations';
 import { formatDate } from '@/lib/format';
 
 export default function Liquidaciones() {
   const { data: liquidations, isLoading } = useLiquidationsList();
   const deleteMut = useDeleteLiquidation();
+  const togglePaidMut = useTogglePaid();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [unpayConfirm, setUnpayConfirm] = useState<string | null>(null);
+
+  const handlePaidChange = (id: string, currentPaid: boolean) => {
+    if (currentPaid) {
+      // Desmarcar → pedir doble confirmación
+      setUnpayConfirm(id);
+    } else {
+      // Marcar como pagado directamente
+      togglePaidMut.mutate({ id, paid: true });
+    }
+  };
 
   return (
     <div>
@@ -40,6 +53,7 @@ export default function Liquidaciones() {
             <TableRow>
               <TableHead>Año</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Pagado</TableHead>
               <TableHead>Fecha creación</TableHead>
               <TableHead>Fecha finalización</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -54,6 +68,12 @@ export default function Liquidaciones() {
                     className={l.status === 'finalized' ? 'bg-green-600' : 'bg-yellow-500 text-black'}>
                     {l.status === 'finalized' ? 'Finalizada' : 'Borrador'}
                   </Badge>
+                </TableCell>
+                <TableCell onClick={e => e.stopPropagation()}>
+                  <Checkbox
+                    checked={l.paid}
+                    onCheckedChange={() => handlePaidChange(l.id, l.paid)}
+                  />
                 </TableCell>
                 <TableCell>{formatDate(l.created_at)}</TableCell>
                 <TableCell>{formatDate(l.finalized_at)}</TableCell>
@@ -84,6 +104,23 @@ export default function Liquidaciones() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (deleteId) deleteMut.mutate(deleteId); setDeleteId(null); }}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!unpayConfirm} onOpenChange={() => setUnpayConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Desmarcar como pagado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta liquidación está marcada como pagada. ¿Estás seguro de que quieres desmarcarla?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (unpayConfirm) togglePaidMut.mutate({ id: unpayConfirm, paid: false }); setUnpayConfirm(null); }}>
+              Sí, desmarcar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
