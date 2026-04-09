@@ -319,6 +319,7 @@ export default function LiquidacionDetalle() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">Pagado</TableHead>
                 <TableHead>Autor</TableHead>
                 <TableHead>Título</TableHead>
                 <TableHead>Fecha pub.</TableHead>
@@ -334,10 +335,19 @@ export default function LiquidacionDetalle() {
             </TableHeader>
             <TableBody>
               {grouped.map(({ author, books }) => {
+                const isPaid = authorPayments?.get(author) ?? false;
                 return (
                   <>
                     {books.map((item, idx) => (
                       <TableRow key={item.item_id} className={item.total_amount < 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}>
+                        <TableCell>
+                          {idx === 0 && (
+                            <Checkbox
+                              checked={isPaid}
+                              onCheckedChange={() => handleAuthorPaidChange(author, isPaid)}
+                            />
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{idx === 0 ? author : ''}</TableCell>
                         <TableCell>{item.book_title}</TableCell>
                         <TableCell>{formatDate(item.publication_date)}</TableCell>
