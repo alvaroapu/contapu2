@@ -69,6 +69,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [sendProgress, setSendProgress] = useState('');
   const [excludedAuthors, setExcludedAuthors] = useState<Set<string>>(new Set());
   const [recipientFilter, setRecipientFilter] = useState<'all' | 'with-email' | 'without-email'>('all');
+  const [resumeFrom, setResumeFrom] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -250,7 +251,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sent' } : a));
       setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'sent', batch: batchNum ?? 0 }]);
-      await (supabase as any).from('email_send_log').upsert({
+      (supabase as any).from('email_send_log').upsert({
         liquidation_id: liquidation.id,
         year: liquidation.year,
         author: authorData.author,
@@ -258,12 +259,12 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         status: 'sent',
         error_message: null,
         sent_at: new Date().toISOString(),
-      }, { onConflict: 'liquidation_id,author' });
+      }, { onConflict: 'liquidation_id,author' }).catch(() => {});
       return true;
     } catch (err: any) {
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'error', error: err.message } : a));
       setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'error', error: err.message, batch: batchNum ?? 0 }]);
-      await (supabase as any).from('email_send_log').upsert({
+      (supabase as any).from('email_send_log').upsert({
         liquidation_id: liquidation.id,
         year: liquidation.year,
         author: authorData.author,
@@ -271,7 +272,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         status: 'error',
         error_message: err.message,
         sent_at: new Date().toISOString(),
-      }, { onConflict: 'liquidation_id,author' });
+      }, { onConflict: 'liquidation_id,author' }).catch(() => {});
       return false;
     }
   };
@@ -449,6 +450,20 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
     });
   };
 
+  const handleMarkSentUpTo = () => {
+    const normalized = normalizeSearch(resumeFrom.trim());
+    if (!normalized) return;
+    const targetIdx = authors.findIndex(a => normalizeSearch(a.author).includes(normalized));
+    if (targetIdx === -1) {
+      toast.error('No se encontró ningún autor con ese nombre');
+      return;
+    }
+    const count = targetIdx + 1;
+    setAuthors(prev => prev.map((a, i) => i <= targetIdx ? { ...a, status: 'sent' as const } : a));
+    toast.success(`${count} autores marcados como enviados (hasta "${authors[targetIdx].author}")`);
+    setResumeFrom('');
+  };
+
   const toggleAllVisible = (include: boolean) => {
     const visibleAuthors = authors
       .filter(a => a.email && a.total > 0 && a.status !== 'sent')
@@ -577,6 +592,23 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
                   />
                 </div>
               </div>
+
+              {sentCount === 0 && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span className="text-sm text-amber-700 shrink-0">Reanudar desde:</span>
+                  <Input
+                    placeholder="Nombre del último autor enviado…"
+                    value={resumeFrom}
+                    onChange={e => setResumeFrom(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleMarkSentUpTo()}
+                    className="flex-1 h-8 text-sm"
+                  />
+                  <Button size="sm" variant="outline" onClick={handleMarkSentUpTo} disabled={!resumeFrom.trim()}>
+                    Marcar enviados hasta aquí
+                  </Button>
+                </div>
+              )}
 
               <div className="rounded-md border max-h-[45vh] overflow-y-auto">
                 <Table>
