@@ -140,6 +140,35 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
       };
     });
 
+    // Restore send status from persistent log
+    const { data: logData } = await (supabase as any)
+      .from('email_send_log')
+      .select('author, status, error_message, sent_at')
+      .eq('liquidation_id', liquidation.id);
+
+    if (logData && logData.length > 0) {
+      const logMap = new Map<string, any>(logData.map((l: any) => [l.author, l]));
+      for (const a of result) {
+        const entry = logMap.get(a.author);
+        if (entry) {
+          a.status = entry.status;
+          if (entry.error_message) a.error = entry.error_message;
+        }
+      }
+      const restoredCount = logData.filter((l: any) => l.status === 'sent').length;
+      if (restoredCount > 0) {
+        setSendLog(logData.map((l: any) => ({
+          timestamp: new Date(l.sent_at).toLocaleTimeString('es-ES'),
+          author: l.author,
+          email: l.email ?? '—',
+          status: l.status as 'sent' | 'error' | 'skipped',
+          error: l.error_message,
+          reason: l.status === 'skipped' ? l.error_message : undefined,
+          batch: 0,
+        })));
+      }
+    }
+
     setFilteredItems(activeItems);
     setAuthors(result);
     setLoading(false);
@@ -221,10 +250,28 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sent' } : a));
       setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'sent', batch: batchNum ?? 0 }]);
+      await (supabase as any).from('email_send_log').upsert({
+        liquidation_id: liquidation.id,
+        year: liquidation.year,
+        author: authorData.author,
+        email: authorData.email,
+        status: 'sent',
+        error_message: null,
+        sent_at: new Date().toISOString(),
+      }, { onConflict: 'liquidation_id,author' });
       return true;
     } catch (err: any) {
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'error', error: err.message } : a));
       setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'error', error: err.message, batch: batchNum ?? 0 }]);
+      await (supabase as any).from('email_send_log').upsert({
+        liquidation_id: liquidation.id,
+        year: liquidation.year,
+        author: authorData.author,
+        email: authorData.email,
+        status: 'error',
+        error_message: err.message,
+        sent_at: new Date().toISOString(),
+      }, { onConflict: 'liquidation_id,author' });
       return false;
     }
   };
