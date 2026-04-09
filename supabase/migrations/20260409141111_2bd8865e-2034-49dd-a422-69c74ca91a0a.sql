@@ -1,0 +1,1 @@
+ALTER TABLE public.liquidations ADD COLUMN paid boolean NOT NULL DEFAULT false;
