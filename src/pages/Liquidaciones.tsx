@@ -9,27 +9,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { LiquidacionFormDialog } from '@/components/liquidaciones/LiquidacionFormDialog';
-import { useLiquidationsList, useDeleteLiquidation, useTogglePaid } from '@/hooks/useLiquidations';
+import { useLiquidationsList, useDeleteLiquidation } from '@/hooks/useLiquidations';
 import { formatDate } from '@/lib/format';
 
 export default function Liquidaciones() {
   const { data: liquidations, isLoading } = useLiquidationsList();
   const deleteMut = useDeleteLiquidation();
-  const togglePaidMut = useTogglePaid();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [unpayConfirm, setUnpayConfirm] = useState<string | null>(null);
-
-  const handlePaidChange = (id: string, currentPaid: boolean) => {
-    if (currentPaid) {
-      // Desmarcar → pedir doble confirmación
-      setUnpayConfirm(id);
-    } else {
-      // Marcar como pagado directamente
-      togglePaidMut.mutate({ id, paid: true });
-    }
-  };
 
   return (
     <div>
