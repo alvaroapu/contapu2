@@ -251,28 +251,12 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'sent' } : a));
       setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'sent', batch: batchNum ?? 0 }]);
-      (supabase as any).from('email_send_log').upsert({
-        liquidation_id: liquidation.id,
-        year: liquidation.year,
-        author: authorData.author,
-        email: authorData.email,
-        status: 'sent',
-        error_message: null,
-        sent_at: new Date().toISOString(),
-      }, { onConflict: 'liquidation_id,author' }).catch(() => {});
+      void (async () => { try { await (supabase as any).from('email_send_log').upsert({ liquidation_id: liquidation.id, year: liquidation.year, author: authorData.author, email: authorData.email, status: 'sent', error_message: null, sent_at: new Date().toISOString() }, { onConflict: 'liquidation_id,author' }); } catch {} })();
       return true;
     } catch (err: any) {
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'error', error: err.message } : a));
       setSendLog(prev => [...prev, { timestamp: now, author: authorData.author, email: authorData.email!, status: 'error', error: err.message, batch: batchNum ?? 0 }]);
-      (supabase as any).from('email_send_log').upsert({
-        liquidation_id: liquidation.id,
-        year: liquidation.year,
-        author: authorData.author,
-        email: authorData.email,
-        status: 'error',
-        error_message: err.message,
-        sent_at: new Date().toISOString(),
-      }, { onConflict: 'liquidation_id,author' }).catch(() => {});
+      void (async () => { try { await (supabase as any).from('email_send_log').upsert({ liquidation_id: liquidation.id, year: liquidation.year, author: authorData.author, email: authorData.email, status: 'error', error_message: err.message, sent_at: new Date().toISOString() }, { onConflict: 'liquidation_id,author' }); } catch {} })();
       return false;
     }
   };
