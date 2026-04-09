@@ -273,6 +273,7 @@ export type Database = {
           finalized_at: string | null
           id: string
           online_royalty_pct: number | null
+          paid: boolean
           school_royalty_pct: number | null
           status: string | null
           year: number
@@ -283,6 +284,7 @@ export type Database = {
           finalized_at?: string | null
           id?: string
           online_royalty_pct?: number | null
+          paid?: boolean
           school_royalty_pct?: number | null
           status?: string | null
           year: number
@@ -293,6 +295,7 @@ export type Database = {
           finalized_at?: string | null
           id?: string
           online_royalty_pct?: number | null
+          paid?: boolean
           school_royalty_pct?: number | null
           status?: string | null
           year?: number
