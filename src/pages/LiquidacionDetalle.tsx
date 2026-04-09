@@ -12,11 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { EditableCell } from '@/components/ventas/EditableCell';
 import {
   useLiquidation, useLiquidationItems, useLiquidationAuthors, useLiquidationTotals,
   useFinalizeLiquidation, useDeleteLiquidation, useUpdateLiquidationItem,
+  useAuthorPayments, useToggleAuthorPaid,
   calculateLiquidationItems,
   type LiquidationItem,
 } from '@/hooks/useLiquidations';
@@ -48,10 +50,21 @@ export default function LiquidacionDetalle() {
   const finalize = useFinalizeLiquidation();
   const deleteMut = useDeleteLiquidation();
   const updateItem = useUpdateLiquidationItem();
+  const { data: authorPayments } = useAuthorPayments(id!);
+  const toggleAuthorPaid = useToggleAuthorPaid();
   const [confirmAction, setConfirmAction] = useState<'finalize' | 'recalculate' | 'delete' | null>(null);
   const [genAllLoading, setGenAllLoading] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailItems, setEmailItems] = useState<LiquidationItem[]>([]);
+  const [unpayAuthor, setUnpayAuthor] = useState<string | null>(null);
+
+  const handleAuthorPaidChange = (author: string, currentPaid: boolean) => {
+    if (currentPaid) {
+      setUnpayAuthor(author);
+    } else {
+      toggleAuthorPaid.mutate({ liquidationId: id!, author, paid: true });
+    }
+  };
 
   const totalAuthors = items?.[0]?.total_authors ?? 0;
   const isDraft = liq?.status === 'draft';
@@ -306,6 +319,7 @@ export default function LiquidacionDetalle() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">Pagado</TableHead>
                 <TableHead>Autor</TableHead>
                 <TableHead>Título</TableHead>
                 <TableHead>Fecha pub.</TableHead>
@@ -321,10 +335,19 @@ export default function LiquidacionDetalle() {
             </TableHeader>
             <TableBody>
               {grouped.map(({ author, books }) => {
+                const isPaid = authorPayments?.get(author) ?? false;
                 return (
                   <>
                     {books.map((item, idx) => (
                       <TableRow key={item.item_id} className={item.total_amount < 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}>
+                        <TableCell>
+                          {idx === 0 && (
+                            <Checkbox
+                              checked={isPaid}
+                              onCheckedChange={() => handleAuthorPaidChange(author, isPaid)}
+                            />
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{idx === 0 ? author : ''}</TableCell>
                         <TableCell>{item.book_title}</TableCell>
                         <TableCell>{formatDate(item.publication_date)}</TableCell>
@@ -421,6 +444,27 @@ export default function LiquidacionDetalle() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!unpayAuthor} onOpenChange={() => setUnpayAuthor(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Desmarcar como pagado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El autor "{unpayAuthor}" está marcado como pagado. ¿Estás seguro de que quieres desmarcarlo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (unpayAuthor) toggleAuthorPaid.mutate({ liquidationId: id!, author: unpayAuthor, paid: false });
+              setUnpayAuthor(null);
+            }}>
+              Sí, desmarcar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {liq && (
         <SendEmailsDialog
