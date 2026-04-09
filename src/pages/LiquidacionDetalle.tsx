@@ -50,10 +50,21 @@ export default function LiquidacionDetalle() {
   const finalize = useFinalizeLiquidation();
   const deleteMut = useDeleteLiquidation();
   const updateItem = useUpdateLiquidationItem();
+  const { data: authorPayments } = useAuthorPayments(id!);
+  const toggleAuthorPaid = useToggleAuthorPaid();
   const [confirmAction, setConfirmAction] = useState<'finalize' | 'recalculate' | 'delete' | null>(null);
   const [genAllLoading, setGenAllLoading] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailItems, setEmailItems] = useState<LiquidationItem[]>([]);
+  const [unpayAuthor, setUnpayAuthor] = useState<string | null>(null);
+
+  const handleAuthorPaidChange = (author: string, currentPaid: boolean) => {
+    if (currentPaid) {
+      setUnpayAuthor(author);
+    } else {
+      toggleAuthorPaid.mutate({ liquidationId: id!, author, paid: true });
+    }
+  };
 
   const totalAuthors = items?.[0]?.total_authors ?? 0;
   const isDraft = liq?.status === 'draft';
