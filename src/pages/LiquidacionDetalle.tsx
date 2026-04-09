@@ -443,6 +443,7 @@ export default function LiquidacionDetalle() {
             }}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!unpayAuthor} onOpenChange={() => setUnpayAuthor(null)}>
         <AlertDialogContent>
