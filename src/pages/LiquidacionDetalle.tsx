@@ -443,7 +443,27 @@ export default function LiquidacionDetalle() {
             }}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
+
+      <AlertDialog open={!!unpayAuthor} onOpenChange={() => setUnpayAuthor(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Desmarcar como pagado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El autor "{unpayAuthor}" está marcado como pagado. ¿Estás seguro de que quieres desmarcarlo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (unpayAuthor) toggleAuthorPaid.mutate({ liquidationId: id!, author: unpayAuthor, paid: false });
+              setUnpayAuthor(null);
+            }}>
+              Sí, desmarcar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
+
 
       {liq && (
         <SendEmailsDialog
