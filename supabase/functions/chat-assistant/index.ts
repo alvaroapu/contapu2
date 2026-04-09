@@ -20,12 +20,19 @@ async function queryDB(sql: string): Promise<{ data: any; error: string | null }
     return { data: null, error: "Only SELECT queries are allowed" };
   }
 
-  const { data, error } = await supabase.rpc("execute_readonly_query", {
-    query_text: sql,
-  });
+  try {
+    const { data, error } = await supabase.rpc("execute_readonly_query", {
+      query_text: sql,
+    });
 
-  if (error) return { data: null, error: error.message };
-  return { data, error: null };
+    console.log("RPC result - data:", JSON.stringify(data)?.slice(0, 500), "error:", error);
+
+    if (error) return { data: null, error: error.message };
+    return { data: data ?? [], error: null };
+  } catch (e) {
+    console.error("queryDB exception:", e);
+    return { data: null, error: String(e) };
+  }
 }
 
 const SYSTEM_PROMPT = `Eres un asistente de datos para la editorial Apuleyo Ediciones. Tienes acceso a una base de datos PostgreSQL con las siguientes tablas:
