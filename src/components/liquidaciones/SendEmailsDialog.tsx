@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { normalizeSearch } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
   const [excludedAuthors, setExcludedAuthors] = useState<Set<string>>(new Set());
   const [recipientFilter, setRecipientFilter] = useState<'all' | 'with-email' | 'without-email'>('all');
   const [resumeFrom, setResumeFrom] = useState('');
+  const cancelRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -279,57 +280,72 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
 
   const handleSendAll = async () => {
     setSending(true);
+    cancelRef.current = false;
     setSendLog([]);
     setActiveTab('log');
     const BATCH_SIZE = 10;
     const BATCH_DELAY_MS = 20000;
     const EMAIL_DELAY_MS = 500;
 
-  const toSend = authors
+    const toSend = authors
       .map((a, idx) => ({ ...a, idx }))
       .filter(a => a.email && a.status !== 'sent' && a.total > 0 && !excludedAuthors.has(a.author));
 
     const totalBatches = Math.ceil(toSend.length / BATCH_SIZE);
+    let cancelled = false;
 
     for (let i = 0; i < toSend.length; i += BATCH_SIZE) {
+      if (cancelRef.current) { cancelled = true; break; }
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
       const batch = toSend.slice(i, i + BATCH_SIZE);
       setSendProgress(`Lote ${batchNum}/${totalBatches} — enviando ${batch.length} emails…`);
 
-      // Send one by one within batch to avoid overloading SMTP
       for (const a of batch) {
+        if (cancelRef.current) { cancelled = true; break; }
         await sendEmail(a, a.idx, batchNum);
         await new Promise(r => setTimeout(r, EMAIL_DELAY_MS));
       }
+      if (cancelled) break;
 
-      // Pause between batches
       if (i + BATCH_SIZE < toSend.length) {
         setSendProgress(`Lote ${batchNum}/${totalBatches} completado. Esperando ${BATCH_DELAY_MS / 1000}s antes del siguiente lote…`);
-        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+        // Interruptible wait
+        for (let w = 0; w < BATCH_DELAY_MS / 500; w++) {
+          if (cancelRef.current) { cancelled = true; break; }
+          await new Promise(r => setTimeout(r, 500));
+        }
+        if (cancelled) break;
       }
     }
-    // Add skipped authors (no email) to the log
-    const noEmailAuthors = authors.filter(a => !a.email && a.total > 0);
-    const negativeAuthors = authors.filter(a => a.total <= 0);
-    const manualExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
-    const now = new Date().toLocaleTimeString('es-ES');
 
-    setSendLog(prev => [
-      ...prev,
-      ...noEmailAuthors.map(a => ({
-        timestamp: now, author: a.author, email: '—', status: 'skipped' as const, reason: 'Sin email', batch: 0,
-      })),
-      ...negativeAuthors.map(a => ({
-        timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: `Saldo ≤0 (${formatEur(a.total)})`, batch: 0,
-      })),
-      ...manualExcluded.map(a => ({
-        timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: 'Excluido manualmente', batch: 0,
-      })),
-    ]);
+    if (!cancelled) {
+      const noEmailAuthors = authors.filter(a => !a.email && a.total > 0);
+      const negativeAuthors = authors.filter(a => a.total <= 0);
+      const manualExcluded = authors.filter(a => a.email && a.total > 0 && excludedAuthors.has(a.author));
+      const now = new Date().toLocaleTimeString('es-ES');
+
+      setSendLog(prev => [
+        ...prev,
+        ...noEmailAuthors.map(a => ({
+          timestamp: now, author: a.author, email: '—', status: 'skipped' as const, reason: 'Sin email', batch: 0,
+        })),
+        ...negativeAuthors.map(a => ({
+          timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: `Saldo ≤0 (${formatEur(a.total)})`, batch: 0,
+        })),
+        ...manualExcluded.map(a => ({
+          timestamp: now, author: a.author, email: a.email ?? '—', status: 'skipped' as const, reason: 'Excluido manualmente', batch: 0,
+        })),
+      ]);
+    }
 
     setSendProgress('');
     setSending(false);
-    toast.success('Proceso completado');
+    toast.success(cancelled ? 'Envío detenido por el usuario' : 'Proceso completado');
+  };
+
+  const handleCancelSend = () => {
+    cancelRef.current = true;
+    setSendProgress('Deteniendo envío…');
   };
 
   const handleTestPdf = async () => {
