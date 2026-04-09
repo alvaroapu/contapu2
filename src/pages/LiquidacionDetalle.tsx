@@ -12,11 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PageBreadcrumb } from '@/components/PageBreadcrumb';
 import { EditableCell } from '@/components/ventas/EditableCell';
 import {
   useLiquidation, useLiquidationItems, useLiquidationAuthors, useLiquidationTotals,
   useFinalizeLiquidation, useDeleteLiquidation, useUpdateLiquidationItem,
+  useAuthorPayments, useToggleAuthorPaid,
   calculateLiquidationItems,
   type LiquidationItem,
 } from '@/hooks/useLiquidations';
