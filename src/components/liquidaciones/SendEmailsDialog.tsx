@@ -259,7 +259,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         status: 'sent',
         error_message: null,
         sent_at: new Date().toISOString(),
-      }, { onConflict: 'liquidation_id,author' }).catch(() => {});
+      }, { onConflict: 'liquidation_id,author' }).then(() => {}, () => {});
       return true;
     } catch (err: any) {
       setAuthors(prev => prev.map((a, i) => i === idx ? { ...a, status: 'error', error: err.message } : a));
@@ -272,7 +272,7 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
         status: 'error',
         error_message: err.message,
         sent_at: new Date().toISOString(),
-      }, { onConflict: 'liquidation_id,author' }).catch(() => {});
+      }, { onConflict: 'liquidation_id,author' }).then(() => {}, () => {});
       return false;
     }
   };
