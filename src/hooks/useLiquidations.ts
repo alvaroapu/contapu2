@@ -284,6 +284,45 @@ export function useTogglePaid() {
   });
 }
 
+export function useAuthorPayments(liquidationId: string) {
+  return useQuery({
+    queryKey: ['author-payments', liquidationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('liquidation_author_payments')
+        .select('*')
+        .eq('liquidation_id', liquidationId);
+      if (error) throw error;
+      const map = new Map<string, boolean>();
+      for (const row of data ?? []) {
+        map.set(row.author, row.paid);
+      }
+      return map;
+    },
+    enabled: !!liquidationId,
+  });
+}
+
+export function useToggleAuthorPaid() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ liquidationId, author, paid }: { liquidationId: string; author: string; paid: boolean }) => {
+      const { error } = await supabase
+        .from('liquidation_author_payments')
+        .upsert(
+          { liquidation_id: liquidationId, author, paid, paid_at: paid ? new Date().toISOString() : null },
+          { onConflict: 'liquidation_id,author' }
+        );
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['author-payments', vars.liquidationId] });
+      toast.success(vars.paid ? 'Marcado como pagado' : 'Desmarcado');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+}
+
 export function useDeleteLiquidation() {
   const qc = useQueryClient();
   return useMutation({
