@@ -788,10 +788,16 @@ export function SendEmailsDialog({ open, onOpenChange, liquidation, allItems }: 
               {testingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
               Probar PDF
             </Button>
-            <Button onClick={handleSendAll} disabled={sending || sendableAuthors.length === 0 || sentCount === sendableAuthors.length}>
-              {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar a {sendableAuthors.filter(a => a.status !== 'sent').length} autor(es)
-            </Button>
+            {sending ? (
+              <Button variant="destructive" onClick={handleCancelSend}>
+                <XCircle className="mr-2 h-4 w-4" />
+                Parar envío
+              </Button>
+            ) : (
+              <Button onClick={handleSendAll} disabled={sendableAuthors.length === 0 || sentCount === sendableAuthors.length}>
+                Enviar a {sendableAuthors.filter(a => a.status !== 'sent').length} autor(es)
+              </Button>
+            )}
           </div>
         </div>
         </DialogFooter>
