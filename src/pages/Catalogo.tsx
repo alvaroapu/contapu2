@@ -52,6 +52,7 @@ export default function Catalogo() {
   const deleteBook = useDeleteBook();
   const deleteBooks = useDeleteBooks();
   const exportCatalog = useExportCatalog();
+  const exportAuthorsNoEmail = useExportAuthorsWithoutEmail();
 
   const { data: authors = [] } = useAuthors();
 
@@ -126,6 +127,9 @@ export default function Catalogo() {
           )}
           <Button variant="outline" size="sm" onClick={() => exportCatalog.mutate()} disabled={exportCatalog.isPending}>
             <Download className="mr-2 h-4 w-4" /> {exportCatalog.isPending ? 'Exportando…' : 'Exportar'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportAuthorsNoEmail.mutate()} disabled={exportAuthorsNoEmail.isPending}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> {exportAuthorsNoEmail.isPending ? 'Exportando…' : 'Autores sin email'}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
             <Merge className="mr-2 h-4 w-4" /> Fusionar
