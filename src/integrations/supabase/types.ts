@@ -212,6 +212,38 @@ export type Database = {
           },
         ]
       }
+      liquidation_author_payments: {
+        Row: {
+          author: string
+          id: string
+          liquidation_id: string
+          paid: boolean
+          paid_at: string | null
+        }
+        Insert: {
+          author: string
+          id?: string
+          liquidation_id: string
+          paid?: boolean
+          paid_at?: string | null
+        }
+        Update: {
+          author?: string
+          id?: string
+          liquidation_id?: string
+          paid?: boolean
+          paid_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquidation_author_payments_liquidation_id_fkey"
+            columns: ["liquidation_id"]
+            isOneToOne: false
+            referencedRelation: "liquidations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       liquidation_items: {
         Row: {
           book_id: string
