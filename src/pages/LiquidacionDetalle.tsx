@@ -259,11 +259,12 @@ export default function LiquidacionDetalle() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Autores</p><p className="text-2xl font-bold">{summary.authors}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Libros</p><p className="text-2xl font-bold">{summary.books}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Unidades</p><p className="text-2xl font-bold">{summary.units}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Total a liquidar</p><p className="text-2xl font-bold">{formatCurrency(summary.total)}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Pagados</p><p className="text-2xl font-bold">{authorPayments ? [...authorPayments.values()].filter(Boolean).length : 0} <span className="text-base font-normal text-muted-foreground">/ {summary.authors}</span></p></CardContent></Card>
       </div>
 
       {/* Filters */}
