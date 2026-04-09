@@ -14,7 +14,8 @@ import { ImportEmailsDialog } from '@/components/catalogo/ImportEmailsDialog';
 import { formatCurrency, formatDate, STATUS_LABELS } from '@/lib/format';
 import { Plus, Upload, ArrowUpDown, Download, Trash2, Merge, Mail } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDeleteAllBooks, useDeleteBook, useDeleteBooks, useExportCatalog } from '@/hooks/useBooks';
+import { useDeleteAllBooks, useDeleteBook, useDeleteBooks, useExportCatalog, useExportAuthorsWithoutEmail } from '@/hooks/useBooks';
+import { FileSpreadsheet } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

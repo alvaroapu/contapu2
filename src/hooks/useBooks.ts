@@ -247,3 +247,41 @@ export function useExportCatalog() {
     onError: (err: any) => toast.error(err.message ?? 'Error al exportar'),
   });
 }
+
+export function useExportAuthorsWithoutEmail() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('execute_readonly_query', {
+        query_text: `
+          SELECT b.author,
+                 string_agg(DISTINCT b.title, ' | ' ORDER BY b.title) as libros,
+                 count(DISTINCT b.id) as num_libros,
+                 ROUND(SUM(COALESCE(li.total_amount,0)),2) as total_liquidacion
+          FROM books b
+          JOIN liquidation_items li ON li.book_id = b.id
+          WHERE (b.author_email IS NULL OR b.author_email = '')
+            AND b.status = 'active'
+            AND COALESCE(li.total_amount, 0) > 0
+          GROUP BY b.author
+          ORDER BY b.author
+        `,
+      });
+      if (error) throw error;
+      const rows = (data as any[]).map((r: any) => ({
+        Autor: r.author,
+        Libros: r.libros,
+        'Nº Libros': Number(r.num_libros),
+        'Total liquidación (€)': Number(r.total_liquidacion),
+      }));
+      if (rows.length === 0) throw new Error('No hay autores sin email con liquidación positiva');
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [{ wch: 50 }, { wch: 60 }, { wch: 12 }, { wch: 22 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Autores sin email');
+      XLSX.writeFile(wb, 'Autores_sin_email_con_liquidacion.xlsx');
+    },
+    onSuccess: () => toast.success('Excel exportado'),
+    onError: (err: any) => toast.error(err.message ?? 'Error al exportar'),
+  });
+}
