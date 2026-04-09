@@ -25,7 +25,7 @@ async function queryDB(sql: string): Promise<{ data: any; error: string | null }
 
   try {
     const { data, error } = await supabase.rpc("execute_readonly_query", {
-      query_text: sql,
+      query_text: cleanSql,
     });
 
     console.log("RPC result - data:", JSON.stringify(data)?.slice(0, 500), "error:", error);
