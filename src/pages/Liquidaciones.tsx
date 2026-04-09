@@ -41,7 +41,6 @@ export default function Liquidaciones() {
             <TableRow>
               <TableHead>Año</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Pagado</TableHead>
               <TableHead>Fecha creación</TableHead>
               <TableHead>Fecha finalización</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -56,12 +55,6 @@ export default function Liquidaciones() {
                     className={l.status === 'finalized' ? 'bg-green-600' : 'bg-yellow-500 text-black'}>
                     {l.status === 'finalized' ? 'Finalizada' : 'Borrador'}
                   </Badge>
-                </TableCell>
-                <TableCell onClick={e => e.stopPropagation()}>
-                  <Checkbox
-                    checked={l.paid}
-                    onCheckedChange={() => handlePaidChange(l.id, l.paid)}
-                  />
                 </TableCell>
                 <TableCell>{formatDate(l.created_at)}</TableCell>
                 <TableCell>{formatDate(l.finalized_at)}</TableCell>
@@ -92,23 +85,6 @@ export default function Liquidaciones() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (deleteId) deleteMut.mutate(deleteId); setDeleteId(null); }}>Eliminar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!unpayConfirm} onOpenChange={() => setUnpayConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Desmarcar como pagado?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta liquidación está marcada como pagada. ¿Estás seguro de que quieres desmarcarla?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (unpayConfirm) togglePaidMut.mutate({ id: unpayConfirm, paid: false }); setUnpayConfirm(null); }}>
-              Sí, desmarcar
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
