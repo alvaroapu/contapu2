@@ -121,6 +121,47 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_log: {
+        Row: {
+          author: string
+          email: string | null
+          error_message: string | null
+          id: string
+          liquidation_id: string
+          sent_at: string
+          status: string
+          year: number
+        }
+        Insert: {
+          author: string
+          email?: string | null
+          error_message?: string | null
+          id?: string
+          liquidation_id: string
+          sent_at?: string
+          status: string
+          year: number
+        }
+        Update: {
+          author?: string
+          email?: string | null
+          error_message?: string | null
+          id?: string
+          liquidation_id?: string
+          sent_at?: string
+          status?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_log_liquidation_id_fkey"
+            columns: ["liquidation_id"]
+            isOneToOne: false
+            referencedRelation: "liquidations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_batches: {
         Row: {
           distributor_id: string

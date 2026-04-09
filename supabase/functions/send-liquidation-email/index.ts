@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const pdfBase64 = arrayBufferToBase64(pdfBuffer.buffer);
+      const pdfBase64 = arrayBufferToBase64(pdfBuffer.buffer as ArrayBuffer);
       return new Response(
         JSON.stringify({ success: true, pdfBase64, pdfFileName }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     const emailSubject = subject || `Liquidación ${liquidationYear} - Apuleyo Ediciones`;
 
     // Build attachments array for denomailer
-    const attachments: Array<{ filename: string; content: Uint8Array; contentType: string; encoding: string }> = [];
+    const attachments: Array<{ filename: string; content: Uint8Array; contentType: string; encoding: "binary" }> = [];
     if (pdfBuffer) {
       attachments.push({
         filename: pdfFileName,
