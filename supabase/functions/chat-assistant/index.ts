@@ -14,8 +14,11 @@ async function queryDB(sql: string): Promise<{ data: any; error: string | null }
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // Strip trailing semicolons (they break the wrapper query)
+  let cleanSql = sql.trim().replace(/;+\s*$/, '');
+
   // Safety: only allow SELECT / WITH
-  const trimmed = sql.trim().toUpperCase();
+  const trimmed = cleanSql.toUpperCase();
   if (!trimmed.startsWith("SELECT") && !trimmed.startsWith("WITH")) {
     return { data: null, error: "Only SELECT queries are allowed" };
   }
