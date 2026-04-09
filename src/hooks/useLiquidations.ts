@@ -11,6 +11,7 @@ export interface Liquidation {
   school_royalty_pct: number;
   created_at: string;
   finalized_at: string | null;
+  paid: boolean;
 }
 
 export interface LiquidationItem {
@@ -259,6 +260,25 @@ export function useFinalizeLiquidation() {
       qc.invalidateQueries({ queryKey: ['liquidations'] });
       qc.invalidateQueries({ queryKey: ['liquidation'] });
       toast.success('Liquidación finalizada');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+}
+
+export function useTogglePaid() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, paid }: { id: string; paid: boolean }) => {
+      const { error } = await supabase
+        .from('liquidations')
+        .update({ paid } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['liquidations'] });
+      qc.invalidateQueries({ queryKey: ['liquidation'] });
+      toast.success('Estado de pago actualizado');
     },
     onError: (e: any) => toast.error(e.message),
   });
