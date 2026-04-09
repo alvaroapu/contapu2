@@ -454,6 +454,7 @@ export type Database = {
       }
     }
     Functions: {
+      execute_readonly_query: { Args: { query_text: string }; Returns: Json }
       fuzzy_match_books: {
         Args: { p_author: string; p_threshold?: number; p_title: string }
         Returns: {
