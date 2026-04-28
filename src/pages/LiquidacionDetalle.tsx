@@ -31,7 +31,6 @@ import { exportLiquidationExcel } from '@/components/liquidaciones/LiquidacionEx
 import JSZip from 'jszip';
 import { supabase } from '@/integrations/supabase/client';
 import { SendEmailsDialog } from '@/components/liquidaciones/SendEmailsDialog';
-import { SendPaymentConfirmationDialog } from '@/components/liquidaciones/SendPaymentConfirmationDialog';
 
 export default function LiquidacionDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -57,8 +56,6 @@ export default function LiquidacionDetalle() {
   const [genAllLoading, setGenAllLoading] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailItems, setEmailItems] = useState<LiquidationItem[]>([]);
-  const [paymentConfirmDialogOpen, setPaymentConfirmDialogOpen] = useState(false);
-  const [paymentConfirmItems, setPaymentConfirmItems] = useState<LiquidationItem[]>([]);
   const [unpayAuthor, setUnpayAuthor] = useState<string | null>(null);
 
   const handleAuthorPaidChange = (author: string, currentPaid: boolean) => {
@@ -239,13 +236,6 @@ export default function LiquidacionDetalle() {
             setEmailDialogOpen(true);
           }}>
             <Mail className="mr-1 h-4 w-4" /> Enviar emails
-          </Button>
-          <Button variant="outline" size="sm" onClick={async () => {
-            const items = await fetchAllLiquidationItems(liq.id);
-            setPaymentConfirmItems(items);
-            setPaymentConfirmDialogOpen(true);
-          }}>
-            <Mail className="mr-1 h-4 w-4" /> Confirmar pago
           </Button>
         </div>
       </div>
@@ -483,14 +473,6 @@ export default function LiquidacionDetalle() {
           onOpenChange={setEmailDialogOpen}
           liquidation={liq}
           allItems={emailItems}
-        />
-      )}
-      {liq && (
-        <SendPaymentConfirmationDialog
-          open={paymentConfirmDialogOpen}
-          onOpenChange={setPaymentConfirmDialogOpen}
-          liquidation={liq}
-          allItems={paymentConfirmItems}
         />
       )}
     </div>
