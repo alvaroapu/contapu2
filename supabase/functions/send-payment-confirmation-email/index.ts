@@ -40,9 +40,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const introHtml = (introText || `Estimado/a ${author},\n\nNos complace comunicarle que hemos procesado el pago correspondiente a la liquidación del año ${liquidationYear}.`)
+    const introHtml = (introText || `Estimado/a ${author},\n\nNos ponemos en contacto con usted para informarle sobre el estado de la liquidación correspondiente al año ${liquidationYear}.\n\nEn estos momentos, nuestro equipo se encuentra en el proceso de recopilación y validación de los datos de todos los autores para asegurar que la gestión se realice de forma correcta.`)
       .replace(/\n/g, "<br>");
-    const outroHtml = (outroText || "")
+    const outroHtml = (outroText || `Le informamos de que, una vez completada esta fase de verificación, se procederá al abono de su liquidación en un plazo máximo de 90 días.\n\nAgradecemos de antemano su colaboración y paciencia durante este proceso administrativo.\n\nQuedamos a su entera disposición para cualquier duda o consulta.\n\nUn cordial saludo,\n\nApuleyo Ediciones`)
       .replace(/\n/g, "<br>");
 
     const emailBody = `
@@ -51,13 +51,15 @@ Deno.serve(async (req) => {
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
   <div style="margin-bottom: 20px;">${introHtml}</div>
-  ${outroHtml ? `<div style="margin-top: 20px;">${outroHtml}</div>` : ""}
+
+  <div style="margin-top: 20px;">${outroHtml}</div>
+
   <hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">
   <p style="font-size: 12px; color: #999;">Este email ha sido enviado automáticamente. Por favor, no responda a este mensaje.</p>
 </body>
 </html>`;
 
-    const emailSubject = subject || `Confirmación de pago - Liquidación ${liquidationYear} - Apuleyo Ediciones`;
+    const emailSubject = subject || `Actualización sobre el proceso de liquidación ${liquidationYear} - Apuleyo Ediciones`;
 
     const client = new SMTPClient({
       connection: {
