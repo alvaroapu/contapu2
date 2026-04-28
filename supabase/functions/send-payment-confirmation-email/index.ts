@@ -59,7 +59,9 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-    const emailSubject = subject || `Confirmación de pago - Liquidación ${liquidationYear} - Apuleyo Ediciones`;
+    const rawSubject = subject || `Confirmación de pago - Liquidación ${liquidationYear} - Apuleyo Ediciones`;
+    // Encode subject as RFC 2047 Base64 to handle accented characters with IONOS SMTP
+    const emailSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(rawSubject)))}?=`;
 
     const client = new SMTPClient({
       connection: {
