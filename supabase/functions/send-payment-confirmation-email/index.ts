@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const introHtml = (introText || `Estimado/a ${author},\n\nNos complace comunicarle que hemos procesado el pago correspondiente a la liquidación del año ${liquidationYear}.`)
+    const introHtml = (introText || `Estimado/a ${author},\n\nNos complace comunicarle que hemos procesado el pago correspondiente a la liquidación del año ${liquidationYear}.\n\nEn los próximos días recibirá el importe en la cuenta bancaria que nos facilitó.`)
       .replace(/\n/g, "<br>");
     const outroHtml = (outroText || "")
       .replace(/\n/g, "<br>");
@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
   <div style="margin-bottom: 20px;">${introHtml}</div>
+
   ${outroHtml ? `<div style="margin-top: 20px;">${outroHtml}</div>` : ""}
+
   <hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">
   <p style="font-size: 12px; color: #999;">Este email ha sido enviado automáticamente. Por favor, no responda a este mensaje.</p>
 </body>
