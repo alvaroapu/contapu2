@@ -45,21 +45,20 @@ Deno.serve(async (req) => {
     const introHtml = (introText || defaultIntro).replace(/\n/g, "<br>");
     const outroHtml = (outroText || "").replace(/\n/g, "<br>");
 
-    const emailBody = `
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
-  <div style="margin-bottom: 20px;">${introHtml}</div>
+    const emailBody = [
+      '<!DOCTYPE html>',
+      '<html lang="es">',
+      '<head><meta charset="UTF-8"></head>',
+      '<body style="font-family: Arial, sans-serif; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">',
+      `<div style="margin-bottom: 20px;">${introHtml}</div>`,
+      outroHtml ? `<div style="margin-top: 20px;">${outroHtml}</div>` : '',
+      '<hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">',
+      '<p style="font-size: 12px; color: #999;">Este email ha sido enviado automáticamente. Por favor, no responda a este mensaje.</p>',
+      '</body>',
+      '</html>',
+    ].filter(Boolean).join('\n');
 
-  ${outroHtml ? `<div style="margin-top: 20px;">${outroHtml}</div>` : ""}
-
-  <hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">
-  <p style="font-size: 12px; color: #999;">Este email ha sido enviado automáticamente. Por favor, no responda a este mensaje.</p>
-</body>
-</html>`;
-
-    const emailSubject = subject || `Actualizacion sobre el proceso de liquidacion ${liquidationYear} - Apuleyo Ediciones`;
+    const emailSubject = subject || `Liquidacion ${liquidationYear} - Apuleyo Ediciones`;
 
     const client = new SMTPClient({
       connection: {
