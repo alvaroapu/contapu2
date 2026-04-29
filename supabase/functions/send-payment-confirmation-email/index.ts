@@ -40,10 +40,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const introHtml = (introText || `Estimado/a ${author},\n\nNos complace comunicarle que hemos procesado el pago correspondiente a la liquidación del año ${liquidationYear}.\n\nEn los próximos días recibirá el importe en la cuenta bancaria que nos facilitó.`)
-      .replace(/\n/g, "<br>");
-    const outroHtml = (outroText || "")
-      .replace(/\n/g, "<br>");
+    const defaultIntro = `Estimado/a ${author},\n\nNos ponemos en contacto con usted para informarle sobre el estado de la liquidación correspondiente al año ${liquidationYear}.\n\nEn estos momentos, nuestro equipo se encuentra en el proceso de recopilación y validación de los datos de todos los autores para asegurar que la gestión se realice de forma correcta.\n\nLe informamos de que, una vez completada esta fase de verificación, se procederá al abono de su liquidación en un plazo máximo de 90 días.\n\nAgradecemos de antemano su colaboración y paciencia durante este proceso administrativo.\n\nQuedamos a su entera disposición para cualquier duda o consulta.\n\nUn cordial saludo,\n\nApuleyo Ediciones`;
+
+    const introHtml = (introText || defaultIntro).replace(/\n/g, "<br>");
+    const outroHtml = (outroText || "").replace(/\n/g, "<br>");
 
     const emailBody = `
 <!DOCTYPE html>
@@ -59,8 +59,7 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-    const rawSubject = subject || `Confirmación de pago - Liquidación ${liquidationYear} - Apuleyo Ediciones`;
-    // Encode subject as RFC 2047 Base64 to handle accented characters with IONOS SMTP
+    const rawSubject = subject || `Actualizacion sobre el proceso de liquidacion ${liquidationYear} - Apuleyo Ediciones`;
     const emailSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(rawSubject)))}?=`;
 
     const client = new SMTPClient({
