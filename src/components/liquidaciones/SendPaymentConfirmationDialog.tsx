@@ -70,7 +70,7 @@ export function SendPaymentConfirmationDialog({ open, onOpenChange, liquidation,
 
   useEffect(() => {
     if (!open) return;
-    setSubject(`Actualización sobre el proceso de liquidación ${liquidation.year} - Apuleyo Ediciones`);
+    setSubject(`Liquidación ${liquidation.year} - Apuleyo Ediciones`);
     setIntroText(DEFAULT_INTRO(liquidation.year));
     setOutroText(DEFAULT_OUTRO());
     if (allItems.length) loadAuthors();
