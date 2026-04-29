@@ -59,8 +59,7 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-    const rawSubject = subject || `Actualizacion sobre el proceso de liquidacion ${liquidationYear} - Apuleyo Ediciones`;
-    const emailSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(rawSubject)))}?=`;
+    const emailSubject = subject || `Actualizacion sobre el proceso de liquidacion ${liquidationYear} - Apuleyo Ediciones`;
 
     const client = new SMTPClient({
       connection: {
