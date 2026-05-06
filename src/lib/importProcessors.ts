@@ -92,7 +92,7 @@ export function parseMaidhisaFile(wb: XLSX.WorkBook): ParsedRow[] {
     const r = raw[i];
     if (!r) continue;
     const ref = r[cRef] ? String(r[cRef]).trim() : '';
-    if (!ref || !ref.startsWith('235AE')) continue;
+    if (!ref || !ref.toUpperCase().startsWith('235AE')) continue;
 
     const ejLiq = parseInt(r[cEjLiq]) || 0;
     rows.push({
@@ -254,14 +254,14 @@ export async function matchMaidhisa(rows: ParsedRow[]): Promise<ImportMatchResul
   const allBooks = await fetchAllBooks();
   const refMap = new Map<string, any>();
   for (const b of allBooks) {
-    if (b.maidhisa_ref) refMap.set(b.maidhisa_ref, b);
+    if (b.maidhisa_ref) refMap.set(b.maidhisa_ref.toUpperCase(), b);
   }
 
   const matched: MatchedEntry[] = [];
   const unmatched: UnmatchedEntry[] = [];
 
   for (const row of rows) {
-    let book = row.reference ? refMap.get(row.reference) : null;
+    let book = row.reference ? refMap.get(row.reference.toUpperCase()) : null;
 
     if (!book && row.title) {
       const normTitle = normalizeText(row.title);
